@@ -116,6 +116,10 @@ furniture. The mitigation is layout, not software:
               ←── 5.5 m ──→
 ```
 
+**Roof structure (built):** 12 rafters radiating to the apex, a wall plate ring where the cone
+lands on the stone, and a boss at the apex to hang the lantern from. All parametric — see
+`N_BEAMS`, `BEAM_W/D`, `PLATE_H` in the generator.
+
 - **Eaves at 18 ft** — the room is as tall as it is wide, which is what makes it a tower
   rather than a round room.
 - **Apex at 27 ft** keeps a 45° pitch: the cone rises by the radius. A shallower cap on an

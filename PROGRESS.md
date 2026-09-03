@@ -92,7 +92,14 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 
 ## Phase 4 — Build the Scene (Weekends 6–8)
 
+> **Started early** — the shell was generated during Phase 3, since it couldn't be bought.
+
 ### Week 1: Block out
+- [x] Room shell generated (walls, floor, conical roof, rafters, wall plate, apex boss)
+- [x] Textured with CC0 PBR sets (grey slate walls, plank floor, plank ceiling)
+- [x] 1.7 m reference figure + walkable envelope included in the shell
+- [x] Offline preview rendering set up (`usdrecord` + `tools/preview_cameras.usda`)
+- [x] Poly budget: **1,178 tris** — 0.24% of the 500K target
 - [ ] Room shell placed, scale checked against 1.7 m reference cube
 - [ ] Furniture rough-positioned
 - [ ] Seated viewpoint entity placed; reviewed from that POV in Simulator

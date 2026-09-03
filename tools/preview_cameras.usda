@@ -64,6 +64,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Flat on your back in the middle of the room, looking at the apex.
+    def Camera "StraightUp"
+    {
+        float focalLength = 12
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (90, 0, 0)
+        double3 xformOp:translate = (0, 1.6, 1.49)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Wall, floor and cone together — the view for judging colour.
     def Camera "Corner"
     {

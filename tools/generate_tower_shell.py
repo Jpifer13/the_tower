@@ -32,6 +32,13 @@ WINDOW_WIDTH  = 1.30   # m, along the arc
 WINDOW_SILL   = 0.40   # m
 WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby at 18 ft
 
+# Roof structure
+N_BEAMS       = 12     # rafters radiating to the apex
+BEAM_W        = 0.18   # m, across
+BEAM_D        = 0.34   # m, deep — must hang clear of the planking or it reads as a stripe
+PLATE_H       = 0.22   # m, wall plate where the cone lands on the stone
+BEAM_TINT     = (0.26, 0.19, 0.13)   # dark timber, so it contrasts with the pale planks
+
 DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
 ENVELOPE_W, ENVELOPE_D = 2.70, 3.00          # real clear floor
 SEAT_SETBACK  = 0.30   # m you sit back from the desk edge
@@ -270,6 +277,79 @@ def box(name, w, h, d, pos, color):
     return m.material_usda() + m.usda()
 
 
+def prism(mesh, start, end, width, depth, tangent):
+    """A rectangular beam running from start to end, boxed around that axis."""
+    ax = [e - s for e, s in zip(end, start)]
+    L = math.sqrt(sum(c * c for c in ax)) or 1.0
+    ax = [c / L for c in ax]
+    # tangent is already perpendicular to the axis; third completes the frame
+    third = (ax[1] * tangent[2] - ax[2] * tangent[1],
+             ax[2] * tangent[0] - ax[0] * tangent[2],
+             ax[0] * tangent[1] - ax[1] * tangent[0])
+    hw, hd = width / 2.0, depth / 2.0
+
+    def corner(base, sw, sd):
+        return tuple(base[k] + sw * hw * tangent[k] + sd * hd * third[k] for k in range(3))
+
+    a = [corner(start, sw, sd) for sw, sd in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    b = [corner(end, sw, sd) for sw, sd in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+    quads = [(a[0], a[1], a[2], a[3]), (b[3], b[2], b[1], b[0]),
+             (a[0], a[3], b[3], b[0]), (a[1], b[1], b[2], a[2]),
+             (a[0], b[0], b[1], a[1]), (a[3], a[2], b[2], b[3])]
+    for q in quads:
+        e1 = [q[1][k] - q[0][k] for k in range(3)]
+        e2 = [q[2][k] - q[0][k] for k in range(3)]
+        nrm = (e1[1] * e2[2] - e1[2] * e2[1],
+               e1[2] * e2[0] - e1[0] * e2[2],
+               e1[0] * e2[1] - e1[1] * e2[0])
+        ln = math.sqrt(sum(c * c for c in nrm)) or 1.0
+        mesh.face(list(q), tuple(c / ln for c in nrm))
+
+
+def roof_structure():
+    """Rafters to the apex, a wall plate at the eaves, and a boss to hang a lantern."""
+    m = Mesh("RoofBeams", (0.30, 0.24, 0.18), texture="roof", tint=BEAM_TINT)
+
+    apex = (0.0, APEX_HEIGHT - 0.10, -SEAT_Z)
+    for i in range(N_BEAMS):
+        th = math.radians(i * 360.0 / N_BEAMS)
+        start = (R * math.sin(th), WALL_HEIGHT, -R * math.cos(th) - SEAT_Z)
+        tangent = (math.cos(th), 0.0, math.sin(th))
+
+        # The beam has to sit *below* the planking, not straddle it, or it just
+        # reads as a darker stripe in the boards. Shift the whole axis inward
+        # along the cone's normal by half its depth.
+        ax = [e - s for e, s in zip(apex, start)]
+        L = math.sqrt(sum(c * c for c in ax)) or 1.0
+        ax = [c / L for c in ax]
+        nrm = (ax[1] * tangent[2] - ax[2] * tangent[1],
+               ax[2] * tangent[0] - ax[0] * tangent[2],
+               ax[0] * tangent[1] - ax[1] * tangent[0])
+        off = BEAM_D / 2.0 + 0.01
+        start = tuple(start[k] - off * nrm[k] for k in range(3))
+        end = tuple(apex[k] - off * nrm[k] for k in range(3))
+        prism(m, start, end, BEAM_W, BEAM_D, tangent)
+
+    # Wall plate: a ring of short segments where the cone lands on the stone.
+    steps = 48
+    for i in range(steps):
+        t0 = i * 2.0 * math.pi / steps
+        t1 = (i + 1) * 2.0 * math.pi / steps
+        p0 = ((R - 0.06) * math.sin(t0), 0.0, -(R - 0.06) * math.cos(t0) - SEAT_Z)
+        p1 = ((R - 0.06) * math.sin(t1), 0.0, -(R - 0.06) * math.cos(t1) - SEAT_Z)
+        tan = (p1[0] - p0[0], 0.0, p1[2] - p0[2])
+        ln = math.hypot(tan[0], tan[2]) or 1.0
+        tan = (tan[0] / ln, 0.0, tan[2] / ln)
+        a = (p0[0], WALL_HEIGHT - PLATE_H, p0[2])
+        b = (p1[0], WALL_HEIGHT - PLATE_H, p1[2])
+        prism(m, a, b, PLATE_H, 0.16, (0.0, 1.0, 0.0))
+
+    # Apex boss — the lantern hangs from this.
+    prism(m, (0.0, APEX_HEIGHT - 0.10, -SEAT_Z), (0.0, APEX_HEIGHT - 0.75, -SEAT_Z),
+          0.22, 0.22, (1.0, 0.0, 0.0))
+    return m.material_usda() + m.usda()
+
+
 def main():
     floor, shell = build()
 
@@ -292,6 +372,8 @@ def main():
                ((R - 0.2) * math.sin(ft), 0.0, -(R - 0.2) * math.cos(ft) - SEAT_Z),
                (0.55, 0.25, 0.15))
 
+    beams = roof_structure()
+
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(f'''#usda 1.0
 (
@@ -307,7 +389,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -316,6 +398,7 @@ def Xform "TowerShell"
     print(f"  window {WINDOW_WIDTH} m wide at {WINDOW_CENTRE}deg (right), {WINDOW_SILL}-{WINDOW_HEAD} m")
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
+    print(f"  roof: {N_BEAMS} rafters, wall plate, apex boss for the lantern")
 
 
 if __name__ == "__main__":
