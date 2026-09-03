@@ -36,7 +36,7 @@ Read it aloud. If it takes much over a minute, cut it, not the room.
 | Audience | **Me.** Generic App Store version optional, later | No App Review or onboarding pressure on v1 |
 | Work surface | **Mac Virtual Display** (Developer Mode) | The one thing that survives inside an immersive space |
 | Wall usage | Must accommodate the Mac display + own panels | Requires deliberate negative space |
-| Ceiling | **Conical** — top floor of the tower. Eaves 3.0 m, apex 6.0 m | Reads unmistakably as a tower top |
+| Ceiling | **Conical** — top floor of the tower. Eaves **5.49 m (18 ft)**, apex **8.24 m (27 ft)** | Reads unmistakably as a tower top |
 | Room diameter | **5.5 m (18 ft)** | Fits the desk plus a 3 m pacing depth behind it |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
 | Immersion style | **`.mixed`**, with a fully enclosing room | `.full` imposes a 1.5 m safety leash that would break pacing |
@@ -100,22 +100,28 @@ furniture. The mitigation is layout, not software:
 ## Elevation — conical roof
 
 ```
-                    ▲  apex 6.0 m
+                    ▲  apex 8.24 m (27 ft)
                    ╱ ╲
-                  ╱   ╲        exposed beams radiating to the apex
+                  ╱   ╲        planks radiating to the apex
                  ╱     ╲       (hang the lantern here)
                 ╱       ╲
                ╱         ╲
-    3.0 m ────┌───────────┐──── eaves / top of wall
+   5.49 m ────┌───────────┐──── eaves / top of wall (18 ft)
               │ ▯         │
-              │ ▯ window  │     window 0.4 m → 2.6 m
+              │ ▯         │
+              │ ▯ window  │     window 0.4 m → 3.6 m
+              │ ▯         │
               │ ▯         │
     0.0 m ────└───────────┘──── floor
               ←── 5.5 m ──→
 ```
 
-- **Eaves at 3.0 m** keeps the wall zone human-scaled and easy to light.
-- **Apex at 6.0 m** gives a ~45° roof pitch — steep enough to read as a tower cap.
+- **Eaves at 18 ft** — the room is as tall as it is wide, which is what makes it a tower
+  rather than a round room.
+- **Apex at 27 ft** keeps a 45° pitch: the cone rises by the radius. A shallower cap on an
+  18 ft wall reads as a lid, not a roof.
+- **Window head raised to 3.6 m** with the wall. At the original 2.6 m it looked stubby
+  against an 18 ft wall.
 - The cone is mostly seen when you lean back or stand, so it can be relatively low-detail:
   beams, boarding, and shadow. Don't spend the budget up there.
 - A high apex is also somewhere to put the one dramatic light (a hanging lantern) without it
@@ -196,6 +202,13 @@ the user's back outside the tower does not exist.
 
 **Also unlocks looking *down*** — a tower window you can lean out of. An HDRI handles that badly,
 since the horizon-level photo stretches and falls apart underfoot.
+
+## Observation from the first render
+
+Seated, you are 1.26 m from a wall of bare stone that fills your entire view. In practice the
+Mac Virtual Display covers most of it, but that makes the wall directly ahead **prime real
+estate, not background** — it wants a shelf over the desk, a tapestry, or something to break it
+up. Bare stone at arm's length for eight hours would be oppressive.
 
 ## Lighting plan
 

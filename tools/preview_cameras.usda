@@ -1,0 +1,76 @@
+#usda 1.0
+(
+    defaultPrim = "Preview"
+    metersPerUnit = 1
+    upAxis = "Y"
+)
+
+# Viewpoints for offline rendering with usdrecord. Not shipped — this exists so the
+# room can be inspected from angles the visionOS simulator's fixed camera can't reach.
+
+def Xform "Preview"
+{
+    def "Shell" (
+        prepend references = @../app/Packages/RealityKitContent/Sources/RealityKitContent/RealityKitContent.rkassets/TowerShell.usda@
+    )
+    {
+    }
+
+    # Lit by the actual day HDRI, so this previews the planned image-based lighting
+    # rather than some arbitrary preview light.
+    def DomeLight "Sky"
+    {
+        asset inputs:texture:file = @../assets/hdri/kloofendal_38d_partly_cloudy-4k.hdr@
+        float inputs:intensity = 1.0
+        float3 xformOp:rotateXYZ = (0, 55, 0)
+        uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+    }
+
+    # Sun through the window, from the window side.
+    def DistantLight "Sun"
+    {
+        float inputs:intensity = 3.0
+        float inputs:angle = 0.53
+        float3 xformOp:rotateXYZ = (-30, 55, 0)
+        uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+    }
+
+    # Seated at the desk, looking at the wall — what you actually see most of the time.
+    def Camera "Seated"
+    {
+        float focalLength = 20
+        float horizontalAperture = 36
+        double3 xformOp:translate = (0, 1.2, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }
+
+    # Standing, turned toward the window on your right.
+    def Camera "ToWindow"
+    {
+        float focalLength = 20
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-5, -55, 0)
+        double3 xformOp:translate = (0, 1.65, 0.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
+    # Looking up at the cone from the pacing area.
+    def Camera "UpAtRoof"
+    {
+        float focalLength = 16
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (55, 0, 0)
+        double3 xformOp:translate = (0, 1.65, 2.0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
+    # Cutaway from above and behind, to judge proportion as a whole.
+    def Camera "Overview"
+    {
+        float focalLength = 18
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-38, 0, 0)
+        double3 xformOp:translate = (0, 11.0, 11.0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+}

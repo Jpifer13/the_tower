@@ -14,9 +14,13 @@ import math
 from pathlib import Path
 
 # ── Dimensions (docs/design/design-doc.md) ───────────────────────────────────
-DIAMETER      = 5.5    # m, internal
-WALL_HEIGHT   = 3.0    # m, floor to eaves
-APEX_HEIGHT   = 6.0    # m, floor to roof apex
+FT = 0.3048            # because the room was specified in feet
+
+DIAMETER      = 5.5           # m, internal (18 ft)
+WALL_HEIGHT   = 18.0 * FT     # 5.49 m, floor to eaves
+# 45-degree roof pitch: the cone rises by the radius, so it reads as a tower cap
+# rather than a shallow lid. Apex ends up ~27 ft off the floor.
+APEX_HEIGHT   = WALL_HEIGHT + DIAMETER / 2.0
 SEGMENTS      = 96     # around the circle
 
 # visionOS puts the user at the origin looking down -Z, so the room is authored in
@@ -25,7 +29,7 @@ WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = -55.0  # mirrored, to your left
 WINDOW_WIDTH  = 1.30   # m, along the arc
 WINDOW_SILL   = 0.40   # m
-WINDOW_HEAD   = 2.60   # m
+WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby at 18 ft
 
 DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
 ENVELOPE_W, ENVELOPE_D = 2.70, 3.00          # real clear floor
@@ -293,7 +297,9 @@ def Xform "TowerShell"
 {shell}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
-    print(f"  {DIAMETER} m across, eaves {WALL_HEIGHT} m, apex {APEX_HEIGHT} m")
+    print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
+    print(f"  eaves {WALL_HEIGHT:.2f} m ({WALL_HEIGHT / FT:.1f} ft), "
+          f"apex {APEX_HEIGHT:.2f} m ({APEX_HEIGHT / FT:.1f} ft)")
     print(f"  window {WINDOW_WIDTH} m wide at {WINDOW_CENTRE}deg (right), {WINDOW_SILL}-{WINDOW_HEAD} m")
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
