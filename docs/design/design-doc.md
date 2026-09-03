@@ -13,14 +13,17 @@
 > works: the tower, your Mac desktop, Ghostty, and room to pace.
 > Background: [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
 
-## The room in one paragraph
+## The room in one paragraph — the 60-second description
 
-A circular study at the top of a stone tower — a working office, not a museum piece. You sit
-at a desk facing a tall window, with a fire going quietly off to one side and bookshelves
-around the curve of the wall. Your Mac desktop floats over the desk — terminal, editor,
-whatever you're working in — with the tower's own panels beside it. The weather and the light
-outside the window match the real world, and so does the sound coming through it. When you
-need a break, or you're on a call, you get up and pace, or go look out the window.
+> The top floor of a stone tower, gone slightly to seed as a working office. You sit at a desk
+> against the curved wall with your Mac floating over it, a tall window on your right, and a fire
+> going quietly on your left. The ceiling is a cone of dark beams climbing to a point six metres
+> up, with a lantern hanging from it. Behind you the room opens out — bookshelves round the curve,
+> a reading chair, and a railed stair opening that reminds you there are floors below. The weather
+> and the light through the window are the real ones outside your house, and so is the sound. When
+> a call drags, you get up and pace, or go and lean on the sill.
+
+Read it aloud. If it takes much over a minute, cut it, not the room.
 
 ## Core decisions
 
@@ -33,35 +36,90 @@ need a break, or you're on a call, you get up and pace, or go look out the windo
 | Audience | **Me.** Generic App Store version optional, later | No App Review or onboarding pressure on v1 |
 | Work surface | **Mac Virtual Display** (Developer Mode) | The one thing that survives inside an immersive space |
 | Wall usage | Must accommodate the Mac display + own panels | Requires deliberate negative space |
-| Ceiling height | **OPEN** — 12–15 ft proposed | Towers want height; confirm when sketching |
+| Ceiling | **Conical** — top floor of the tower. Eaves 3.0 m, apex 6.0 m | Reads unmistakably as a tower top |
+| Room diameter | **5.5 m (18 ft)** | Fits the desk plus a 3 m pacing depth behind it |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
 | Immersion style | **`.mixed`**, with a fully enclosing room | `.full` imposes a 1.5 m safety leash that would break pacing |
 
-## Layout (proposal — amend on paper)
+## Layout
 
-Top-down, desk at the "south" edge, user facing north toward the window:
+Derived from the real desk and the real clear floor, not chosen for looks. You sit at the desk
+against the tower wall, facing it; the window is to your **right**; the room wraps behind you.
+
+**Real-world measurements this is built around**
+- Desk 6 ft × 3 ft (1.83 × 0.91 m), against the wall
+- ~1.5 ft (0.46 m) clear each side of the desk
+- ~10 ft (3.05 m) clear behind you
+- Forward is blocked by the real desk and wall — which is why the virtual desk sits against the
+  virtual wall. The real obstacle and the virtual one line up.
+
+**Plan** (north at top; you sit at the south, facing the wall)
 
 ```
-              ╭─────────────────────╮
-          ╭───╯      WINDOW         ╰───╮     ← tall, reachable, the focal point
-        ╭─╯    (approach + lean on)     ╰─╮
-       │                                  │
-       │  shelves                shelves  │
-       │                                  │
-       │            [ open floor ]        │   ← must be walkable, desk→window
-       │                                  │
-       │  FIREPLACE              clear    │   ← clear wall = app window real estate
-       │   (side)                 wall    │
-        ╲                                ╱
-         ╲───────╮   DESK    ╭──────────╱     ← user seated here, facing window
-                 ╰───────────╯
-                      door
+                        shelves along the curve
+                 ╭───────────────────────────────╮
+             ╭───╯                                ╰───╮
+          ╭──╯    ▨ stair opening                     ╰──╮
+        ╭─╯         (railed, perimeter)                  ╰─╮
+       │                                                    │
+       │      ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┐             │
+  ▯    │      │                                │        ▩   │
+  ▯ W  │      │   WALKABLE ENVELOPE            │       fire │  E
+  ▯    │      │   2.7 m wide × 3.0 m deep      │            │
+window │      │   = your actual clear floor    │            │
+       │      └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ┘             │
+        ╲─╮                [ chair ]                     ╭─╱
+          ╰──╮      ▭▭▭▭▭▭ DESK ▭▭▭▭▭▭            ╭─────╯
+             ╰───────────────────────────────────╯
+                     you sit here, facing the wall
+                            ← 5.5 m across →
 ```
 
-- **Window**: opposite the desk, floor-to-near-ceiling if the geometry allows. Reachable.
-- **Fireplace**: to one side, in peripheral vision when seated — warm light without glare.
-- **Clear wall**: at least one uncluttered span at seated eye height for app windows.
-- **Open floor**: an unobstructed path desk → window. No rug edges or clutter to walk "through".
+| Element | Position | Notes |
+|---|---|---|
+| Desk + you | South, against the wall | Mac Virtual Display floats here, over the desk |
+| Window | **West — to your right** | Tall, reachable, lean-out-able. The focal point |
+| Fireplace | East — to your left | Peripheral warmth when seated; visible while pacing |
+| Shelves | North curve, behind you | Where the clutter goes |
+| Stair opening | North-west, at the perimeter | Sells "top floor". Railed, and outside the walking path |
+
+## Sizing the walkable envelope to the real room
+
+Because we're on `.mixed` there's no system boundary — nothing stops you walking into real
+furniture. The mitigation is layout, not software:
+
+- The **walkable envelope** (2.7 × 3.0 m) matches your real clear floor. Inside it, the virtual
+  floor is empty.
+- **Virtual furniture fences the real hazards.** Shelves, a reading chair and the railed stair
+  opening sit exactly where your real walls and furniture are, so the instinct not to walk
+  through them keeps you inside the safe area. Furniture is doing the job the 1.5 m boundary
+  would have done, but without ending the experience.
+- The tower is 5.5 m across while your envelope is ~3 m. **That's deliberate** — the room reads
+  as full-size, but everything beyond the envelope is furnished rather than open floor.
+
+## Elevation — conical roof
+
+```
+                    ▲  apex 6.0 m
+                   ╱ ╲
+                  ╱   ╲        exposed beams radiating to the apex
+                 ╱     ╲       (hang the lantern here)
+                ╱       ╲
+               ╱         ╲
+    3.0 m ────┌───────────┐──── eaves / top of wall
+              │ ▯         │
+              │ ▯ window  │     window 0.4 m → 2.6 m
+              │ ▯         │
+    0.0 m ────└───────────┘──── floor
+              ←── 5.5 m ──→
+```
+
+- **Eaves at 3.0 m** keeps the wall zone human-scaled and easy to light.
+- **Apex at 6.0 m** gives a ~45° roof pitch — steep enough to read as a tower cap.
+- The cone is mostly seen when you lean back or stand, so it can be relatively low-detail:
+  beams, boarding, and shadow. Don't spend the budget up there.
+- A high apex is also somewhere to put the one dramatic light (a hanging lantern) without it
+  glaring in your eyes while you work.
 
 ## Consequences of the standing requirement
 

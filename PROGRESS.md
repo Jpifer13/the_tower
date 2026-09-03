@@ -57,11 +57,15 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 - [x] Lighting plan drafted — window IBL, fire and candles the only real-time lights
 - [x] Audio plan drafted — including the time-of-day × weather window matrix
 - [x] v1 feature list agreed
-- [ ] Draw the floor plan and elevation on paper → `docs/design/floor-plan.jpg`
-- [ ] Confirm ceiling height (12–15 ft proposed)
+- [x] Floor plan + elevation drafted from real measurements (in the design doc)
+- [x] Ceiling decided: **conical** — eaves 3.0 m, apex 6.0 m; room 5.5 m across
+- [x] Immersion style decided: **`.mixed`** (avoids the 1.5 m full-immersion leash)
+- [x] Walkable envelope sized to the real clear floor (2.7 × 3.0 m)
+- [x] 60-second description written
+- [ ] Sanity-check the plan on paper, and against the real desk — amend anything that feels wrong
 - [x] Outside-view approach decided: **hybrid** — geometry near (parallax), HDRI far (sky + lighting)
 - [ ] Collect 20–30 reference images into `docs/design/mood-board/`
-- [ ] 60-second room description test — can you describe it cold?
+- [ ] Read the 60-second description aloud — does it describe a room you want to be in?
 
 **Exit criterion:** One-page design doc complete with floor plan, lighting plan, audio plan, feature list.
 **⚠ DECISION GATE 2** — Would you use this room daily? Record verdict.
