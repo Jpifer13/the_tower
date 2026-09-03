@@ -11,6 +11,7 @@ this and is safe to hand-edit.
     python3 tools/generate_tower_shell.py
 """
 import math
+import os
 from pathlib import Path
 
 # ── Dimensions (docs/design/design-doc.md) ───────────────────────────────────
@@ -35,9 +36,18 @@ DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
 ENVELOPE_W, ENVELOPE_D = 2.70, 3.00          # real clear floor
 SEAT_SETBACK  = 0.30   # m you sit back from the desk edge
 
-OUT = Path(__file__).parent.parent / (
-    "app/Packages/RealityKitContent/Sources/RealityKitContent/"
-    "RealityKitContent.rkassets/TowerShell.usda")
+# Wall look. Tint multiplies the albedo, so darkness and warmth can be dialled without
+# re-downloading a texture: (1,1,1) is untouched, lower = darker, blue-biased = cooler.
+WALL_TEXTURE  = os.environ.get("TOWER_WALL_TEX", "wall")
+# Default pulls the slate darker and cooler. Override to taste, e.g.
+#   TOWER_WALL_TINT=0.55,0.60,0.72 python3 tools/generate_tower_shell.py
+WALL_TINT     = tuple(float(v) for v in
+                      os.environ.get("TOWER_WALL_TINT", "0.72,0.76,0.84").split(","))
+OUT_NAME      = os.environ.get("TOWER_OUT", "TowerShell.usda")
+
+OUT = (Path(__file__).parent.parent
+       / "app/Packages/RealityKitContent/Sources/RealityKitContent/RealityKitContent.rkassets"
+       / OUT_NAME)
 
 R = DIAMETER / 2.0
 
@@ -60,8 +70,8 @@ TILE = 2.0  # metres per texture repeat, so texel density is uniform everywhere
 
 
 class Mesh:
-    def __init__(self, name, color, texture=None):
-        self.name, self.color, self.texture = name, color, texture
+    def __init__(self, name, color, texture=None, tint=(1.0, 1.0, 1.0)):
+        self.name, self.color, self.texture, self.tint = name, color, texture, tint
         self.pts, self.counts, self.idx, self.normals, self.uvs = [], [], [], [], []
 
     def face(self, verts, normal, uvs=None):
@@ -88,6 +98,7 @@ class Mesh:
 
     def _textured_material(self, indent):
         i, n, t = indent, self.name, self.texture
+        tr, tg, tb = self.tint
         base = f"</TowerShell/{n}Mat"
         return f'''{i}def Material "{n}Mat"
 {i}{{
@@ -105,6 +116,7 @@ class Mesh:
 {i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
 {i}        token inputs:wrapS = "repeat"
 {i}        token inputs:wrapT = "repeat"
+{i}        float4 inputs:scale = ({tr}, {tg}, {tb}, 1)
 {i}        float3 outputs:rgb
 {i}    }}
 {i}    def Shader "normalTex"
@@ -189,7 +201,7 @@ def build():
     w0, w1 = WINDOW_CENTRE - half, WINDOW_CENTRE + half
 
     floor = Mesh("Floor", (0.28, 0.26, 0.24), texture="floor")
-    wall  = Mesh("Wall",  (0.46, 0.44, 0.41), texture="wall")
+    wall  = Mesh("Wall",  (0.46, 0.44, 0.41), texture=WALL_TEXTURE, tint=WALL_TINT)
     roof  = Mesh("Roof",  (0.20, 0.16, 0.13), texture="roof")
 
     # Slope length of the cone, for roof UVs that don't stretch.

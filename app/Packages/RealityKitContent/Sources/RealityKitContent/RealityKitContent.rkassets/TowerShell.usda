@@ -28,6 +28,7 @@ def Xform "TowerShell"
             float2 inputs:st.connect = </TowerShell/FloorMat/stReader.outputs:result>
             token inputs:wrapS = "repeat"
             token inputs:wrapT = "repeat"
+            float4 inputs:scale = (1.0, 1.0, 1.0, 1)
             float3 outputs:rgb
         }
         def Shader "normalTex"
@@ -93,6 +94,7 @@ def Xform "TowerShell"
             float2 inputs:st.connect = </TowerShell/WallMat/stReader.outputs:result>
             token inputs:wrapS = "repeat"
             token inputs:wrapT = "repeat"
+            float4 inputs:scale = (0.72, 0.76, 0.84, 1)
             float3 outputs:rgb
         }
         def Shader "normalTex"
@@ -158,6 +160,7 @@ def Xform "TowerShell"
             float2 inputs:st.connect = </TowerShell/RoofMat/stReader.outputs:result>
             token inputs:wrapS = "repeat"
             token inputs:wrapT = "repeat"
+            float4 inputs:scale = (1.0, 1.0, 1.0, 1)
             float3 outputs:rgb
         }
         def Shader "normalTex"

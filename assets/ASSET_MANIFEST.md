@@ -22,7 +22,7 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 
 | ID | Texture | Use | Source | Price | License | License folder | Status |
 |---|---|---|---|---|---|---|---|
-| T-001 | medieval_blocks_05 2K | tower wall | Poly Haven | $0 | CC0 | `licenses/medieval_blocks_05/` | ✅ |
+| T-001 | castle_wall_slates 2K | tower wall | Poly Haven | $0 | CC0 | `licenses/castle_wall_slates/` | ✅ |
 | T-002 | dark_wooden_planks 2K | floor | Poly Haven | $0 | CC0 | `licenses/dark_wooden_planks/` | ✅ |
 | T-003 | brown_planks_03 2K | conical ceiling | Poly Haven | $0 | CC0 | `licenses/brown_planks_03/` | ✅ |
 

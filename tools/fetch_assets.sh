@@ -26,7 +26,7 @@ fetch_tex() {  # role, polyhaven id
   done
   echo "    $1 ($2)"
 }
-fetch_tex wall  medieval_blocks_05
+fetch_tex wall  castle_wall_slates
 fetch_tex floor dark_wooden_planks
 fetch_tex roof  brown_planks_03
 
