@@ -35,6 +35,7 @@ need a break, or you're on a call, you get up and pace, or go look out the windo
 | Wall usage | Must accommodate the Mac display + own panels | Requires deliberate negative space |
 | Ceiling height | **OPEN** — 12–15 ft proposed | Towers want height; confirm when sketching |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
+| Immersion style | **`.mixed`**, with a fully enclosing room | `.full` imposes a 1.5 m safety leash that would break pacing |
 
 ## Layout (proposal — amend on paper)
 
@@ -72,9 +73,12 @@ This is the decision with the most technical weight, so it's worth being explici
 3. **Scale errors become obvious.** Seated, you forgive a slightly-wrong room. Walking to a
    window that turns out to be 1.4 m tall is immediately wrong. Block out against a 1.7 m
    reference from the first hour of Phase 4.
-4. **Passthrough breakthrough.** visionOS fades passthrough in when someone walks beyond a
-   safe boundary. The desk→window walk must be short enough to stay inside it — a few steps,
-   not a hike. Something to confirm on device in Phase 6.
+4. **The 1.5 m boundary — solved by using `.mixed`.** Full immersion ends the experience if your
+   head leaves a 1.5 m radius, which would eject you mid-pace. Mixed immersion has no such leash,
+   and an enclosing room occludes passthrough anyway. See
+   [`../learning-notes/immersion-style-and-the-15m-boundary.md`](../learning-notes/immersion-style-and-the-15m-boundary.md).
+   The trade: nothing will stop you walking into real furniture, so the virtual room must be sized
+   to your real clear floor space.
 5. **The floor matters now.** In a seated design the floor is barely seen. Here it's underfoot
    and in view while walking.
 
