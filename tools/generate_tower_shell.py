@@ -52,19 +52,92 @@ def p(theta_deg, y):
     return (R * math.sin(t), y, -R * math.cos(t) - SEAT_Z)
 
 
-class Mesh:
-    def __init__(self, name, color):
-        self.name, self.color = name, color
-        self.pts, self.counts, self.idx, self.normals = [], [], [], []
+TILE = 2.0  # metres per texture repeat, so texel density is uniform everywhere
 
-    def face(self, verts, normal):
+
+class Mesh:
+    def __init__(self, name, color, texture=None):
+        self.name, self.color, self.texture = name, color, texture
+        self.pts, self.counts, self.idx, self.normals, self.uvs = [], [], [], [], []
+
+    def face(self, verts, normal, uvs=None):
         base = len(self.pts)
         self.pts.extend(verts)
         self.normals.extend([normal] * len(verts))
+        if uvs is None:
+            # Planar fallback: project onto whichever plane the face least faces.
+            ax, ay, az = abs(normal[0]), abs(normal[1]), abs(normal[2])
+            if ay >= ax and ay >= az:
+                uvs = [(v[0] / TILE, v[2] / TILE) for v in verts]
+            elif ax >= az:
+                uvs = [(v[2] / TILE, v[1] / TILE) for v in verts]
+            else:
+                uvs = [(v[0] / TILE, v[1] / TILE) for v in verts]
+        self.uvs.extend(uvs)
         self.counts.append(len(verts))
         self.idx.extend(range(base, base + len(verts)))
 
     def material_usda(self, indent="    "):
+        if self.texture:
+            return self._textured_material(indent)
+        return self._flat_material(indent)
+
+    def _textured_material(self, indent):
+        i, n, t = indent, self.name, self.texture
+        base = f"</TowerShell/{n}Mat"
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = {base}/Surface.outputs:surface>
+{i}    def Shader "stReader"
+{i}    {{
+{i}        uniform token info:id = "UsdPrimvarReader_float2"
+{i}        token inputs:varname = "st"
+{i}        float2 outputs:result
+{i}    }}
+{i}    def Shader "diffuseTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/{t}_diff.jpg@
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "repeat"
+{i}        token inputs:wrapT = "repeat"
+{i}        float3 outputs:rgb
+{i}    }}
+{i}    def Shader "normalTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/{t}_nor.jpg@
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "repeat"
+{i}        token inputs:wrapT = "repeat"
+{i}        token inputs:sourceColorSpace = "raw"
+{i}        float4 inputs:scale = (2, 2, 2, 1)
+{i}        float4 inputs:bias = (-1, -1, -1, 0)
+{i}        float3 outputs:rgb
+{i}    }}
+{i}    def Shader "roughTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/{t}_rough.jpg@
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "repeat"
+{i}        token inputs:wrapT = "repeat"
+{i}        token inputs:sourceColorSpace = "raw"
+{i}        float outputs:r
+{i}    }}
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor.connect = {base}/diffuseTex.outputs:rgb>
+{i}        normal3f inputs:normal.connect = {base}/normalTex.outputs:rgb>
+{i}        float inputs:roughness.connect = {base}/roughTex.outputs:r>
+{i}        float inputs:metallic = 0
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _flat_material(self, indent):
         """Low emissive floor so nothing is pure black; real light comes from the scene."""
         r, g, b = self.color
         i = indent
@@ -97,6 +170,9 @@ class Mesh:
 {i}    int[] faceVertexIndices = [{", ".join(map(str, self.idx))}]
 {i}    point3f[] points = [{f(self.pts)}]
 {i}    normal3f[] normals = [{f(self.normals)}] (interpolation = "vertex")
+{i}    texCoord2f[] primvars:st = [{", ".join(f"({u:.4f}, {v:.4f})" for u, v in self.uvs)}] (
+{i}        interpolation = "vertex"
+{i}    )
 {i}    color3f[] primvars:displayColor = [({self.color[0]}, {self.color[1]}, {self.color[2]})]
 {i}    rel material:binding = </TowerShell/{self.name}Mat>
 {i}    uniform token subdivisionScheme = "none"
@@ -108,33 +184,56 @@ def build():
     half = math.degrees(WINDOW_WIDTH / 2.0 / R)
     w0, w1 = WINDOW_CENTRE - half, WINDOW_CENTRE + half
 
-    floor = Mesh("Floor", (0.28, 0.26, 0.24))
-    wall  = Mesh("Wall",  (0.46, 0.44, 0.41))
-    roof  = Mesh("Roof",  (0.20, 0.16, 0.13))
+    floor = Mesh("Floor", (0.28, 0.26, 0.24), texture="floor")
+    wall  = Mesh("Wall",  (0.46, 0.44, 0.41), texture="wall")
+    roof  = Mesh("Roof",  (0.20, 0.16, 0.13), texture="roof")
+
+    # Slope length of the cone, for roof UVs that don't stretch.
+    slope = math.hypot(R, APEX_HEIGHT - WALL_HEIGHT)
+
+    # The texture has to meet itself where it wraps, so the repeat count round the
+    # circumference must be a whole number. Nudge the tile size to the nearest fit
+    # rather than leaving a seam.
+    circumference = 2.0 * math.pi * R
+    wrap_repeats = max(1, round(circumference / TILE))
+    print(f"  wall wraps {wrap_repeats}x ({circumference / wrap_repeats:.3f} m/tile, "
+          f"nudged from {TILE:.2f})")
+
+    def arc_u(theta_deg):
+        """U along the circumference, in whole repeats so the seam closes."""
+        return theta_deg / 360.0 * wrap_repeats
 
     step = 360.0 / SEGMENTS
     for s in range(SEGMENTS):
         a, b = s * step, (s + 1) * step
         mid = (a + b) / 2.0
 
-        # Floor fan (centre of the room, not the seat)
-        floor.face([(0.0, 0.0, -SEAT_Z), p(a, 0.0), p(b, 0.0)], (0.0, 1.0, 0.0))
+        # Floor fan (centre of the room, not the seat) — planar XZ UVs
+        fa, fb, fc = (0.0, 0.0, -SEAT_Z), p(a, 0.0), p(b, 0.0)
+        floor.face([fa, fb, fc], (0.0, 1.0, 0.0),
+                   [(v[0] / TILE, v[2] / TILE) for v in (fa, fb, fc)])
 
         # Inward-facing wall normal
         t = math.radians(mid)
         n = (-math.sin(t), 0.0, -math.cos(t))
 
         in_window = (w0 <= mid <= w1)
+        # Cylindrical UVs: u follows the circumference, v is height. No stretching.
+        ua, ub = arc_u(a), arc_u(b)
         if in_window:
             # Below the sill and above the head; the gap is the opening.
             for lo, hi in ((0.0, WINDOW_SILL), (WINDOW_HEAD, WALL_HEIGHT)):
-                wall.face([p(a, lo), p(b, lo), p(b, hi), p(a, hi)], n)
+                wall.face([p(a, lo), p(b, lo), p(b, hi), p(a, hi)], n,
+                          [(ua, lo / TILE), (ub, lo / TILE), (ub, hi / TILE), (ua, hi / TILE)])
         else:
-            wall.face([p(a, 0.0), p(b, 0.0), p(b, WALL_HEIGHT), p(a, WALL_HEIGHT)], n)
+            wall.face([p(a, 0.0), p(b, 0.0), p(b, WALL_HEIGHT), p(a, WALL_HEIGHT)], n,
+                      [(ua, 0.0), (ub, 0.0), (ub, WALL_HEIGHT / TILE), (ua, WALL_HEIGHT / TILE)])
 
         # Cone to the apex
+        # Conical UVs: u round the eaves, v up the slope to the apex.
         roof.face([p(a, WALL_HEIGHT), p(b, WALL_HEIGHT), (0.0, APEX_HEIGHT, -SEAT_Z)],
-                  (-math.sin(t) * 0.5, -0.5, -math.cos(t) * 0.5))
+                  (-math.sin(t) * 0.5, -0.5, -math.cos(t) * 0.5),
+                  [(ua, 0.0), (ub, 0.0), ((ua + ub) / 2.0, slope / TILE)])
 
     parts = [floor, wall, roof]
     body = "".join(m.material_usda() + m.usda() for m in parts)

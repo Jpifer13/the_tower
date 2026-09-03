@@ -18,6 +18,16 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 |---|---|---|---|---|---|---|---|---|---|
 | M-001 | **Tower shell — generated, not bought** | room-shell | `tools/generate_tower_shell.py` | $0 | USD | n/a — ours | n/a | ✅ |
 
+## Textures (PBR sets — "skins" for the generated shell)
+
+| ID | Texture | Use | Source | Price | License | License folder | Status |
+|---|---|---|---|---|---|---|---|
+| T-001 | medieval_blocks_05 2K | tower wall | Poly Haven | $0 | CC0 | `licenses/medieval_blocks_05/` | ✅ |
+| T-002 | dark_wooden_planks 2K | floor | Poly Haven | $0 | CC0 | `licenses/dark_wooden_planks/` | ✅ |
+| T-003 | brown_planks_03 2K | conical ceiling | Poly Haven | $0 | CC0 | `licenses/brown_planks_03/` | ✅ |
+
+Each set is Diffuse + nor_gl + Rough as 2K JPG, in `RealityKitContent.rkassets/textures/`.
+
 ## Audio
 
 | ID | Sound | Use | Source | Price | License | License folder | Status |
