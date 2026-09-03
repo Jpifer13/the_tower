@@ -37,9 +37,14 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 | Room shell | $50–150 | $0 |
 | Furniture | $20–80 | $0 |
 | Props | $20–60 | $0 |
-| Outside view / HDRI | $0–30 | $0 |
+| Window frame — *spend here*, it's inspected at 30 cm | included in shell | $0 |
+| Exterior geometry (rooftops, tree, tower wall) | $20–60 | $0 |
+| Sky HDRIs, 4–8K | $0–30 | $0 |
 | Audio | $0 | $0 |
-| **Total** | **$150–400 ceiling** | **$0** |
+| **Total** | **~$170–460** | **$0** |
+
+Budget is taste-driven now, not ROI-driven — see [`../docs/decisions/DECISIONS.md`](../docs/decisions/DECISIONS.md).
+Still buy **commercial-use** licences so a generic App Store version stays cheap to do later.
 
 ## Attribution required?
 

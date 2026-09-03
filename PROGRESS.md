@@ -59,7 +59,7 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 - [x] v1 feature list agreed
 - [ ] Draw the floor plan and elevation on paper → `docs/design/floor-plan.jpg`
 - [ ] Confirm ceiling height (12–15 ft proposed)
-- [ ] Decide the outside-view approach: high-res HDRI vs 3D backdrop (**changes Phase 3 shopping**)
+- [x] Outside-view approach decided: **hybrid** — geometry near (parallax), HDRI far (sky + lighting)
 - [ ] Collect 20–30 reference images into `docs/design/mood-board/`
 - [ ] 60-second room description test — can you describe it cold?
 
@@ -71,10 +71,13 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 - [ ] Room shell sourced ($50–150 budget)
 - [ ] Furniture sourced ($20–80)
 - [ ] Props sourced — books, candles, scrolls, bottles, crystal ball, quill ($20–60)
-- [ ] Window view HDRI(s) sourced — day / sunset / night ($0–30, Poly Haven first)
+- [ ] Sky HDRIs sourced at **4–8K** — day / sunset / night ($0–30, Poly Haven first)
+      *(the 2K ones in `reference/practice-assets/` are for practice and lighting only — too soft at the glass)*
+- [ ] **Exterior geometry** sourced — tower wall below the window, 2–3 rooftops, a tree
+      *(new, from the hybrid decision; only the ~90° cone visible through the window)* Budget: $20–60
 - [ ] Audio sourced — **expanded by the design**: fire, room tone, owl, page rustle, *plus*
       window beds for clear/rain/snow/wind × day/sunset/night (freesound, $0)
-- [ ] Outside view: high-res HDRI **or** 3D backdrop — decide before shopping (see design doc)
+
 - [ ] Every asset has a row in `assets/ASSET_MANIFEST.md`
 - [ ] Every asset has a license folder in `assets/licenses/`
 - [ ] All FBX/OBJ converted to USDZ via Blender, originals kept in `assets/source/`

@@ -66,11 +66,7 @@ Top-down, desk at the "south" edge, user facing north toward the window:
 
 This is the decision with the most technical weight, so it's worth being explicit:
 
-1. **The outside view can't be a low-res HDRI.** At 3 m a 2K skybox is fine; pressed against
-   the glass it reads as a blurry photo and breaks the illusion. Options, cheapest first:
-   a 4K/8K HDRI; a 3D backdrop (a few pieces of geometry — rooftops, treeline — sitting outside
-   the window with real parallax); or a hybrid, geometry near and HDRI far. **OPEN** — decide
-   in Phase 3, because it changes what you shop for.
+1. **The outside view is a hybrid — decided.** See *Outside the window* below.
 2. **Window frame geometry gets inspected.** Sill, mullions and glass will be seen from ~30 cm.
    This is the one place to spend polygons and texture resolution.
 3. **Scale errors become obvious.** Seated, you forgive a slightly-wrong room. Walking to a
@@ -110,6 +106,34 @@ top of visual noise and the space will feel cramped in daily use.
 Resolution: concentrate the clutter (shelves, bottles, scrolls) on the flanks and behind the
 user; keep the window wall and one side wall deliberately quiet. Detail where you look
 occasionally, calm where your work lives.
+
+## Outside the window (decided 2026-09-03: hybrid)
+
+Geometry near, HDRI far. Both, not either.
+
+| Distance | Approach | Why |
+|---|---|---|
+| 0–50 m | **Real geometry** — tower wall dropping away, 2–3 neighbouring rooftops, a tree | Parallax. This is the whole point |
+| Far / sky | **HDRI** (4–8K) or a gradient sky | Cheap, and it's the light source anyway |
+
+**Why not HDRI alone.** An equirectangular HDRI is treated as infinitely distant, so it never
+shifts as you move. Walking to the window would change nothing about the view, which reads as a
+photo painted on the sky. Resolution compounds it: a 2K HDRI spreads ~2048 px over 360°, about
+6 pixels per degree, against roughly 34 that the headset resolves — some 6× short. Fine as a glow
+through a small window across the room; mush at the glass. Matching the display would need
+something like a 12K panorama, which is impractical to load.
+
+**Why not geometry alone.** The HDRI is doing image-based lighting regardless, and modelling a
+believable sky is wasted effort.
+
+**Nice side effect:** the geometry is lit by whatever sky is active, so time-of-day and weather
+transitions come along for free instead of needing three baked variants of the exterior.
+
+**Scope control:** only model the roughly 90° cone visible through the window. Everything behind
+the user's back outside the tower does not exist.
+
+**Also unlocks looking *down*** — a tower window you can lean out of. An HDRI handles that badly,
+since the horizon-level photo stretches and falls apart underfoot.
 
 ## Lighting plan
 
