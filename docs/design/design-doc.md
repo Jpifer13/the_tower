@@ -2,6 +2,19 @@
 
 > Phase 2 deliverable. Decisions locked 2026-09-03; open questions marked **OPEN**.
 
+> ## ⛔ BLOCKED — the premise below does not work on visionOS
+>
+> This doc was written around the room being "an office with atmosphere": a backdrop your
+> real apps float inside. **That is not possible for a third-party app.** When an app opens
+> an `ImmersiveSpace`, visionOS hides every other app — verified empirically, see
+> [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
+>
+> Everything about the room's *form* below still stands. What's invalid is its *job*:
+> "backdrop for my other apps", "walls host the user's app windows", and pacing around during
+> a meeting all assume other apps stay visible. They won't.
+>
+> **Do not start Phase 3 shopping until the product direction is re-decided.**
+
 ## The room in one paragraph
 
 A circular study at the top of a stone tower — a working office, not a museum piece. You sit

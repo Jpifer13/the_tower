@@ -13,6 +13,20 @@ Format for ad-hoc decisions:
 
 ---
 
+## 2026-09-03 — An immersive space hides all other apps
+
+**Context:** The design assumed The Tower would be a backdrop for real work — other apps
+floating over the desk and on the walls, usable during meetings.
+
+**Finding:** Verified on visionOS 26.5 that opening an `ImmersiveSpace` causes the system to
+hide every other app, including with `.mixed` immersion. Apple documents this. Third-party
+apps cannot publish into the system Environments picker; Disney+ and HBO Max have the same
+limitation. Details: [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
+
+**Decision:** **PENDING** — product direction needs re-deciding before Phase 3 spending.
+
+---
+
 ## Gate 1 — After Phase 1: Did Reality Composer Pro click?
 
 - **Question:** Was RCP gratifying or frustrating? If frustrating, consider partnering with a 3D artist or drastically simplifying the scene.
