@@ -16,7 +16,7 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 
 | ID | Asset | Category | Source | Price | Format | Converted to USDZ | License | License folder | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| M-001 | _(e.g. Wizard study room shell)_ | room-shell | Fab | $ | | ☐ | | `licenses/M-001/` | ☐ |
+| M-001 | **Tower shell — generated, not bought** | room-shell | `tools/generate_tower_shell.py` | $0 | USD | n/a — ours | n/a | ✅ |
 
 ## Audio
 
@@ -28,7 +28,9 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 
 | ID | HDRI | Use | Source | Price | License | License folder | Status |
 |---|---|---|---|---|---|---|---|
-| H-001 | _(e.g. Night sky moonlit)_ | night window/IBL | Poly Haven | $0 | CC0 | `licenses/H-001/` | ☐ |
+| H-001 | kloofendal_38d_partly_cloudy 4K | day sky + IBL | Poly Haven | $0 | CC0 | `licenses/kloofendal_38d_partly_cloudy/` | ✅ |
+| H-002 | rogland_sunset 4K | sunset sky + IBL | Poly Haven | $0 | CC0 | `licenses/rogland_sunset/` | ✅ |
+| H-003 | rogland_moonlit_night 4K | night sky + IBL | Poly Haven | $0 | CC0 | `licenses/rogland_moonlit_night/` | ✅ |
 
 ## Budget tracker
 

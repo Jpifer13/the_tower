@@ -27,3 +27,11 @@ reference/practice-assets/
 
 # Reality Composer Pro per-user editor state (camera history, open scenes)
 *.rcuserdata
+
+# Large binary assets — refetch with tools/fetch_assets.sh; licences are tracked
+assets/hdri/*.hdr
+assets/hdri/*.exr
+assets/models/**/*.usdz
+assets/models/**/*.usd
+assets/audio/*
+!assets/audio/.gitkeep

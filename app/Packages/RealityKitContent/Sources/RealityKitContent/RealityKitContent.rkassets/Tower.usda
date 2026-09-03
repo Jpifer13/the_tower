@@ -5,13 +5,14 @@
     upAxis = "Y"
 )
 
+# Composition root — safe to edit in Reality Composer Pro.
+# The shell it references is generated; see tools/generate_tower_shell.py.
+
 def Xform "Root"
 {
-    def Sphere "PlaceholderOrb"
+    def "Shell" (
+        prepend references = @TowerShell.usda@
+    )
     {
-        double radius = 0.15
-        color3f[] primvars:displayColor = [(0.42, 0.29, 0.65)]
-        float3 xformOp:translate = (0, 1.4, -1.5)
-        uniform token[] xformOpOrder = ["xformOp:translate"]
     }
 }
