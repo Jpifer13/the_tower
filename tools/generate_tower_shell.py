@@ -17,7 +17,7 @@ from pathlib import Path
 # ── Dimensions (docs/design/design-doc.md) ───────────────────────────────────
 FT = 0.3048            # because the room was specified in feet
 
-DIAMETER      = 5.5           # m, internal (18 ft)
+DIAMETER      = 8.8           # m, internal (28.9 ft) — was 5.5, widened 60%
 WALL_HEIGHT   = 18.0 * FT     # 5.49 m, floor to eaves
 # 45-degree roof pitch: the cone rises by the radius, so it reads as a tower cap
 # rather than a shallow lid. Apex ends up ~27 ft off the floor.
@@ -32,12 +32,10 @@ WINDOW_WIDTH  = 1.30   # m, along the arc
 WINDOW_SILL   = 0.40   # m
 WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby at 18 ft
 
-# Roof structure
-N_BEAMS       = 12     # rafters radiating to the apex
-BEAM_W        = 0.18   # m, across
-BEAM_D        = 0.34   # m, deep — must hang clear of the planking or it reads as a stripe
+# Roof structure. Radiating rafters were tried and cut — they read as a busy
+# starburst from below and fought the calm the room wants.
 PLATE_H       = 0.22   # m, wall plate where the cone lands on the stone
-BEAM_TINT     = (0.26, 0.19, 0.13)   # dark timber, so it contrasts with the pale planks
+BEAM_TINT     = (0.26, 0.19, 0.13)   # dark timber
 
 DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
 ENVELOPE_W, ENVELOPE_D = 2.70, 3.00          # real clear floor
@@ -307,46 +305,22 @@ def prism(mesh, start, end, width, depth, tangent):
 
 
 def roof_structure():
-    """Rafters to the apex, a wall plate at the eaves, and a boss to hang a lantern."""
-    m = Mesh("RoofBeams", (0.30, 0.24, 0.18), texture="roof", tint=BEAM_TINT)
+    """Wall plate where the cone lands, and a boss at the apex for the lantern."""
+    m = Mesh("RoofTrim", (0.30, 0.24, 0.18), texture="roof", tint=BEAM_TINT)
 
-    apex = (0.0, APEX_HEIGHT - 0.10, -SEAT_Z)
-    for i in range(N_BEAMS):
-        th = math.radians(i * 360.0 / N_BEAMS)
-        start = (R * math.sin(th), WALL_HEIGHT, -R * math.cos(th) - SEAT_Z)
-        tangent = (math.cos(th), 0.0, math.sin(th))
-
-        # The beam has to sit *below* the planking, not straddle it, or it just
-        # reads as a darker stripe in the boards. Shift the whole axis inward
-        # along the cone's normal by half its depth.
-        ax = [e - s for e, s in zip(apex, start)]
-        L = math.sqrt(sum(c * c for c in ax)) or 1.0
-        ax = [c / L for c in ax]
-        nrm = (ax[1] * tangent[2] - ax[2] * tangent[1],
-               ax[2] * tangent[0] - ax[0] * tangent[2],
-               ax[0] * tangent[1] - ax[1] * tangent[0])
-        off = BEAM_D / 2.0 + 0.01
-        start = tuple(start[k] - off * nrm[k] for k in range(3))
-        end = tuple(apex[k] - off * nrm[k] for k in range(3))
-        prism(m, start, end, BEAM_W, BEAM_D, tangent)
-
-    # Wall plate: a ring of short segments where the cone lands on the stone.
-    steps = 48
+    steps = 64
     for i in range(steps):
         t0 = i * 2.0 * math.pi / steps
         t1 = (i + 1) * 2.0 * math.pi / steps
         p0 = ((R - 0.06) * math.sin(t0), 0.0, -(R - 0.06) * math.cos(t0) - SEAT_Z)
         p1 = ((R - 0.06) * math.sin(t1), 0.0, -(R - 0.06) * math.cos(t1) - SEAT_Z)
-        tan = (p1[0] - p0[0], 0.0, p1[2] - p0[2])
-        ln = math.hypot(tan[0], tan[2]) or 1.0
-        tan = (tan[0] / ln, 0.0, tan[2] / ln)
         a = (p0[0], WALL_HEIGHT - PLATE_H, p0[2])
         b = (p1[0], WALL_HEIGHT - PLATE_H, p1[2])
         prism(m, a, b, PLATE_H, 0.16, (0.0, 1.0, 0.0))
 
     # Apex boss — the lantern hangs from this.
-    prism(m, (0.0, APEX_HEIGHT - 0.10, -SEAT_Z), (0.0, APEX_HEIGHT - 0.75, -SEAT_Z),
-          0.22, 0.22, (1.0, 0.0, 0.0))
+    prism(m, (0.0, APEX_HEIGHT - 0.10, -SEAT_Z), (0.0, APEX_HEIGHT - 0.85, -SEAT_Z),
+          0.26, 0.26, (1.0, 0.0, 0.0))
     return m.material_usda() + m.usda()
 
 
@@ -398,7 +372,7 @@ def Xform "TowerShell"
     print(f"  window {WINDOW_WIDTH} m wide at {WINDOW_CENTRE}deg (right), {WINDOW_SILL}-{WINDOW_HEAD} m")
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
-    print(f"  roof: {N_BEAMS} rafters, wall plate, apex boss for the lantern")
+    print(f"  roof: wall plate + apex boss (no rafters)")
 
 
 if __name__ == "__main__":

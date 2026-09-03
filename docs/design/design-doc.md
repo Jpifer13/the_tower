@@ -36,8 +36,8 @@ Read it aloud. If it takes much over a minute, cut it, not the room.
 | Audience | **Me.** Generic App Store version optional, later | No App Review or onboarding pressure on v1 |
 | Work surface | **Mac Virtual Display** (Developer Mode) | The one thing that survives inside an immersive space |
 | Wall usage | Must accommodate the Mac display + own panels | Requires deliberate negative space |
-| Ceiling | **Conical** — top floor of the tower. Eaves **5.49 m (18 ft)**, apex **8.24 m (27 ft)** | Reads unmistakably as a tower top |
-| Room diameter | **5.5 m (18 ft)** | Fits the desk plus a 3 m pacing depth behind it |
+| Ceiling | **Conical** — top floor of the tower. Eaves **5.49 m (18 ft)**, apex **9.89 m (32.4 ft)** | Reads unmistakably as a tower top |
+| Room diameter | **8.8 m (28.9 ft)** | Widened 60% from 5.5 m — 5.5 felt tight |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
 | Immersion style | **`.mixed`**, with a fully enclosing room | `.full` imposes a 1.5 m safety leash that would break pacing |
 
@@ -72,7 +72,7 @@ window │      │   = your actual clear floor    │            │
           ╰──╮      ▭▭▭▭▭▭ DESK ▭▭▭▭▭▭            ╭─────╯
              ╰───────────────────────────────────╯
                      you sit here, facing the wall
-                            ← 5.5 m across →
+                            ← 8.8 m across →
 ```
 
 | Element | Position | Notes |
@@ -94,13 +94,13 @@ furniture. The mitigation is layout, not software:
   opening sit exactly where your real walls and furniture are, so the instinct not to walk
   through them keeps you inside the safe area. Furniture is doing the job the 1.5 m boundary
   would have done, but without ending the experience.
-- The tower is 5.5 m across while your envelope is ~3 m. **That's deliberate** — the room reads
+- The tower is 8.8 m across while your envelope is ~3 m. **That's deliberate** — the room reads
   as full-size, but everything beyond the envelope is furnished rather than open floor.
 
 ## Elevation — conical roof
 
 ```
-                    ▲  apex 8.24 m (27 ft)
+                    ▲  apex 9.89 m (32.4 ft)
                    ╱ ╲
                   ╱   ╲        planks radiating to the apex
                  ╱     ╲       (hang the lantern here)
@@ -113,17 +113,20 @@ furniture. The mitigation is layout, not software:
               │ ▯         │
               │ ▯         │
     0.0 m ────└───────────┘──── floor
-              ←── 5.5 m ──→
+              ←── 8.8 m ──→
 ```
 
-**Roof structure (built):** 12 rafters radiating to the apex, a wall plate ring where the cone
-lands on the stone, and a boss at the apex to hang the lantern from. All parametric — see
-`N_BEAMS`, `BEAM_W/D`, `PLATE_H` in the generator.
+**Roof structure (built):** a wall plate ring where the cone lands on the stone, and a boss at
+the apex to hang the lantern from.
+
+**Rafters: tried and cut (2026-09-03).** Twelve radiating beams were built and rejected — from
+below they read as a busy starburst and fought the calm the room needs for daily work. The cone
+is better plain. The generator still has `prism()` if they're ever wanted back.
 
 - **Eaves at 18 ft** — the room is as tall as it is wide, which is what makes it a tower
   rather than a round room.
-- **Apex at 27 ft** keeps a 45° pitch: the cone rises by the radius. A shallower cap on an
-  18 ft wall reads as a lid, not a roof.
+- **Apex at 32 ft** keeps a 45° pitch: the cone rises by the radius, so widening the room
+  raised the apex automatically.
 - **Window head raised to 3.6 m** with the wall. At the original 2.6 m it looked stubby
   against an 18 ft wall.
 - The cone is mostly seen when you lean back or stand, so it can be relatively low-detail:

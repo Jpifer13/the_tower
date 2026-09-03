@@ -59,8 +59,8 @@ def Xform "Preview"
     {
         float focalLength = 16
         float horizontalAperture = 36
-        float3 xformOp:rotateXYZ = (55, 0, 0)
-        double3 xformOp:translate = (0, 1.65, 2.0)
+        float3 xformOp:rotateXYZ = (40, 0, 0)
+        double3 xformOp:translate = (0, 1.65, 3.6)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
@@ -70,7 +70,7 @@ def Xform "Preview"
         float focalLength = 12
         float horizontalAperture = 36
         float3 xformOp:rotateXYZ = (90, 0, 0)
-        double3 xformOp:translate = (0, 1.6, 1.49)
+        double3 xformOp:translate = (0, 1.6, 3.14)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
@@ -80,7 +80,7 @@ def Xform "Preview"
         float focalLength = 14
         float horizontalAperture = 36
         float3 xformOp:rotateXYZ = (10, 150, 0)
-        double3 xformOp:translate = (0, 1.65, 2.6)
+        double3 xformOp:translate = (0, 1.65, 4.2)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 

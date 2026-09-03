@@ -18,5 +18,8 @@ final class AppModel {
     }
 
     var immersiveSpaceState: ImmersiveSpaceState = .closed
-    var immersionStyle: any ImmersionStyle = .full
+    /// Mixed, not full: full immersion imposes a 1.5 m safety boundary that would eject
+    /// you mid-pace. The room is a closed volume, so it occludes passthrough anyway.
+    /// See docs/learning-notes/immersion-style-and-the-15m-boundary.md
+    var immersionStyle: any ImmersionStyle = .mixed
 }
