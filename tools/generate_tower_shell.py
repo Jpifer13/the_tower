@@ -34,7 +34,8 @@ WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby 
 
 # Roof structure. Radiating rafters were tried and cut — they read as a busy
 # starburst from below and fought the calm the room wants.
-PLATE_H       = 0.22   # m, wall plate where the cone lands on the stone
+PLATE_H       = 0.28   # m, wall plate height where the cone lands on the stone
+PLATE_D       = 0.22   # m, how far it projects into the room
 BEAM_TINT     = (0.26, 0.19, 0.13)   # dark timber
 
 DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
@@ -81,9 +82,14 @@ class Mesh:
         self.pts, self.counts, self.idx, self.normals, self.uvs = [], [], [], [], []
 
     def face(self, verts, normal, uvs=None):
+        """normal may be one vector for the whole face, or one per vertex for
+        smooth shading across a curved surface."""
         base = len(self.pts)
         self.pts.extend(verts)
-        self.normals.extend([normal] * len(verts))
+        if isinstance(normal, list):
+            self.normals.extend(normal)
+        else:
+            self.normals.extend([normal] * len(verts))
         if uvs is None:
             # Planar fallback: project onto whichever plane the face least faces.
             ax, ay, az = abs(normal[0]), abs(normal[1]), abs(normal[2])
@@ -305,18 +311,45 @@ def prism(mesh, start, end, width, depth, tangent):
 
 
 def roof_structure():
-    """Wall plate where the cone lands, and a boss at the apex for the lantern."""
+    """Wall plate where the cone lands, and a boss at the apex for the lantern.
+
+    The plate is a single continuous ring. Built as a row of separate boxes it
+    showed the end cap of every segment as a thin line, with wedge gaps between
+    them — a continuous strip shares its vertices, so there is nothing to see.
+    """
     m = Mesh("RoofTrim", (0.30, 0.24, 0.18), texture="roof", tint=BEAM_TINT)
 
-    steps = 64
+    steps = 96
+    y_top = WALL_HEIGHT            # flush with the eaves, so no stone shows through
+    y_bot = WALL_HEIGHT - PLATE_H
+    r_in = R - PLATE_D
+
+    def ring_pt(t, radius, y):
+        return (radius * math.sin(t), y, -radius * math.cos(t) - SEAT_Z)
+
+    circumference = 2.0 * math.pi * r_in
+    wraps = max(1, round(circumference / TILE))
+
+    def inward_at(t):
+        return (-math.sin(t), 0.0, math.cos(t))
+
     for i in range(steps):
         t0 = i * 2.0 * math.pi / steps
         t1 = (i + 1) * 2.0 * math.pi / steps
-        p0 = ((R - 0.06) * math.sin(t0), 0.0, -(R - 0.06) * math.cos(t0) - SEAT_Z)
-        p1 = ((R - 0.06) * math.sin(t1), 0.0, -(R - 0.06) * math.cos(t1) - SEAT_Z)
-        a = (p0[0], WALL_HEIGHT - PLATE_H, p0[2])
-        b = (p1[0], WALL_HEIGHT - PLATE_H, p1[2])
-        prism(m, a, b, PLATE_H, 0.16, (0.0, 1.0, 0.0))
+        u0, u1 = i / steps * wraps, (i + 1) / steps * wraps
+        n0, n1 = inward_at(t0), inward_at(t1)
+
+        # Face onto the room. Per-vertex normals so the ring reads as curved
+        # rather than as a run of flat facets.
+        m.face([ring_pt(t0, r_in, y_bot), ring_pt(t1, r_in, y_bot),
+                ring_pt(t1, r_in, y_top), ring_pt(t0, r_in, y_top)],
+               [n0, n1, n1, n0],
+               [(u0, 0.0), (u1, 0.0), (u1, PLATE_H / TILE), (u0, PLATE_H / TILE)])
+        # Underside
+        m.face([ring_pt(t0, R, y_bot), ring_pt(t1, R, y_bot),
+                ring_pt(t1, r_in, y_bot), ring_pt(t0, r_in, y_bot)],
+               (0.0, -1.0, 0.0),
+               [(u0, 0.0), (u1, 0.0), (u1, PLATE_D / TILE), (u0, PLATE_D / TILE)])
 
     # Apex boss — the lantern hangs from this.
     prism(m, (0.0, APEX_HEIGHT - 0.10, -SEAT_Z), (0.0, APEX_HEIGHT - 0.85, -SEAT_Z),

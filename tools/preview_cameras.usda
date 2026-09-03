@@ -74,6 +74,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Close on where the cone meets the stone, to inspect the junction.
+    def Camera "Eaves"
+    {
+        float focalLength = 35
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (25, 180, 0)
+        double3 xformOp:translate = (0, 3.2, 0.5)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Wall, floor and cone together — the view for judging colour.
     def Camera "Corner"
     {
