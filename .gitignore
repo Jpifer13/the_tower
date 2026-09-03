@@ -24,3 +24,6 @@ app/**/.swiftpm/
 # Downloaded reference material — regenerate with reference/fetch.sh
 reference/apple-samples/
 reference/practice-assets/
+
+# Reality Composer Pro per-user editor state (camera history, open scenes)
+*.rcuserdata
