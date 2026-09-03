@@ -20,3 +20,7 @@ marketing/preview-video/**/Render Files/
 # Xcode / SwiftPM
 app/**/*.xcworkspace/xcuserdata/
 app/**/.swiftpm/
+
+# Downloaded reference material — regenerate with reference/fetch.sh
+reference/apple-samples/
+reference/practice-assets/

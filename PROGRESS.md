@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Status: **Phase 0 — complete.** Next: Phase 1 (Reality Composer Pro).
+Status: **Phase 1 — prep staged, learning in progress.**
 Started: 2026-09-03
 Target ship: ~14 weekends from start
 
@@ -23,18 +23,25 @@ Legend: `[ ]` todo · `[x]` done · `[-]` skipped/cut
 **Exit criterion:** ✅ Met. App builds, runs, opens a Full Space, and loads Reality Composer Pro content.
 Findings recorded in [`docs/learning-notes/visionos-scenes.md`](docs/learning-notes/visionos-scenes.md).
 
-## Phase 1 — Learn Reality Composer Pro (Weekends 2–3)
+Orientation, links and a Diorama dissection guide: [`docs/learning-notes/phase-1-guide.md`](docs/learning-notes/phase-1-guide.md)
 
-- [ ] Watch WWDC23 "Meet Reality Composer Pro"
-- [ ] Watch WWDC24 "Create custom environments for your immersive apps" (twice)
-- [ ] Watch WWDC24 "Compose interactive 3D content in Reality Composer Pro"
-- [ ] Take apart Apple's "Diorama" sample in RCP
-- [ ] Practice: place a free USDZ asset in a fresh RCP scene
-- [ ] Practice: add point light + IBL from a Poly Haven HDRI
-- [ ] Practice: particle system (Sparks) — tune emission, lifetime, color
+### Prep (staged — run `./reference/fetch.sh` on a fresh clone)
+- [x] Diorama sample downloaded → `reference/apple-samples/diorama/`
+- [x] Hello World sample downloaded → `reference/apple-samples/hello-world/`
+- [x] Practice HDRIs (CC0, day / sunset / moonlit night) → `reference/practice-assets/hdri/`
+- [x] Practice USDZ models → `reference/practice-assets/usdz/` (verified they compile via `realitytool`)
+
+### Yours to do
+- [ ] Watch [WWDC23 "Meet Reality Composer Pro"](https://developer.apple.com/videos/play/wwdc2023/10083/)
+- [ ] Watch [WWDC24 "Create custom environments…"](https://developer.apple.com/videos/play/wwdc2024/10087/) (twice)
+- [ ] Watch [WWDC24 "Compose interactive 3D content in RCP"](https://developer.apple.com/videos/play/wwdc2024/10102/)
+- [ ] Take apart Diorama in RCP (what to look at: see the guide)
+- [ ] Practice: place a USDZ in a fresh RCP scene — check scale against 1.7 m
+- [ ] Practice: point light + IBL from an HDRI
+- [ ] Practice: particle system — start from a preset, then tune emission + lifetime
 - [ ] Practice: spatial audio source, walk the falloff in the Simulator
-- [ ] Practice: export RCP package, load it from Swift in the Phase 0 app
-- [ ] Notes captured in `docs/learning-notes/`
+- [x] Practice: load an RCP scene from Swift — **already proven in Phase 0** (`TowerImmersiveView`)
+- [ ] Add your own notes to `docs/learning-notes/`
 
 **Exit criterion:** Asset → lit RCP scene → particles + audio → loads in app. Unblocked, not fast.
 **⚠ DECISION GATE 1** — Did RCP click? Record verdict in `docs/decisions/DECISIONS.md`.
