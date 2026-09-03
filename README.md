@@ -11,7 +11,7 @@ Current status: [PROGRESS.md](PROGRESS.md)
 the_tower/
 ├── wizard_tower_build_plan.md   # The master plan (source of truth for phases)
 ├── PROGRESS.md                  # Phase tracker — update as you go
-├── app/                         # Xcode project lives here (created in Phase 0)
+├── app/                         # visionOS Xcode project (see app/README.md)
 ├── docs/
 │   ├── design/                  # Phase 2: design doc, floor plan, lighting & audio plans
 │   │   └── mood-board/          # Reference images (wizard towers, alchemist studies)

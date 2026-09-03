@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>UIApplicationSceneManifest</key>
+	<dict>
+		<key>UIApplicationSupportsMultipleScenes</key>
+		<true/>
+		<key>UISceneConfigurations</key>
+		<dict/>
+		<!-- Which scene opens at launch.
+		     UIWindowSceneSessionRoleApplication          -> the control panel window (current)
+		     UIWindowSceneSessionRoleImmersiveSpaceApplication -> boot straight into the tower
+		     If you switch to the immersive role, also set UISceneInitialImmersionStyle
+		     to UIImmersionStyleMixed / UIImmersionStyleProgressive / UIImmersionStyleFull. -->
+		<key>UIApplicationPreferredDefaultSceneSessionRole</key>
+		<string>UIWindowSceneSessionRoleApplication</string>
+	</dict>
+</dict>
+</plist>

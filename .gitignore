@@ -16,3 +16,7 @@ assets/source/**/*.zip
 
 # Video editing scratch
 marketing/preview-video/**/Render Files/
+
+# Xcode / SwiftPM
+app/**/*.xcworkspace/xcuserdata/
+app/**/.swiftpm/

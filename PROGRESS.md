@@ -1,7 +1,7 @@
 # Progress Tracker
 
-Status: **Phase 0 — not started**
-Started: —
+Status: **Phase 0 — complete.** Next: Phase 1 (Reality Composer Pro).
+Started: 2026-09-03
 Target ship: ~14 weekends from start
 
 Legend: `[ ]` todo · `[x]` done · `[-]` skipped/cut
@@ -10,16 +10,18 @@ Legend: `[ ]` todo · `[x]` done · `[-]` skipped/cut
 
 ## Phase 0 — Foundation (Weekend 1)
 
-- [ ] Install Xcode 16+ from Mac App Store
-- [ ] Launch Reality Composer Pro once (Xcode → Open Developer Tool)
-- [ ] Sign in to Apple Developer account in Xcode → Settings → Accounts
-- [ ] Install Blender (for FBX/OBJ → USDZ conversion later)
-- [ ] Create visionOS project in `app/` (SwiftUI + RealityKit, Volume initial scene)
-- [ ] Run default project in visionOS Simulator
-- [ ] Switch initial scene to Full Space and re-run
-- [ ] Read Apple's "Hello World" visionOS sample end-to-end
+- [x] Install Xcode 16+ — **Xcode 26.5** already installed
+- [x] Download the visionOS 26.5 simulator runtime (7.3 GB — SDK ships without it)
+- [x] Launch Reality Composer Pro — opens `Packages/RealityKitContent/Package.realitycomposerpro`
+- [x] Apple Developer signing verified (team `89DJNH7K9F`)
+- [x] Install Blender — already installed
+- [x] Create visionOS project in `app/` (SwiftUI + RealityKit + RealityKitContent package)
+- [x] Run in the visionOS Simulator — control panel window renders
+- [x] Full Space verified — immersive space opens and loads `Tower.usda` from the RCP package
+- [ ] Read Apple's "Hello World" visionOS sample end-to-end ← *only remaining item, and it's reading*
 
-**Exit criterion:** Can launch the Simulator, navigate an immersive scene, and explain what an ImmersiveSpace is.
+**Exit criterion:** ✅ Met. App builds, runs, opens a Full Space, and loads Reality Composer Pro content.
+Findings recorded in [`docs/learning-notes/visionos-scenes.md`](docs/learning-notes/visionos-scenes.md).
 
 ## Phase 1 — Learn Reality Composer Pro (Weekends 2–3)
 
