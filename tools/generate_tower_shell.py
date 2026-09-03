@@ -322,6 +322,23 @@ def build():
             wall.face([p(a, 0.0), p(b, 0.0), p(b, WALL_HEIGHT), p(a, WALL_HEIGHT)], n,
                       [(ua, 0.0), (ub, 0.0), (ub, WALL_HEIGHT / TILE), (ua, WALL_HEIGHT / TILE)])
 
+        # Outer skin. Without this the wall is a single curved surface with no
+        # thickness, so the reveal projects into thin air and reads as a floating
+        # frame. Same opening, cut on the same segments.
+        n_out = (math.sin(t), 0.0, -math.cos(t))
+        if in_window:
+            for lo, hi in ((0.0, WINDOW_SILL), (WINDOW_HEAD, WALL_HEIGHT)):
+                wall.face([po(b, lo), po(a, lo), po(a, hi), po(b, hi)], n_out,
+                          [(ub, lo / TILE), (ua, lo / TILE), (ua, hi / TILE), (ub, hi / TILE)])
+        else:
+            wall.face([po(b, 0.0), po(a, 0.0), po(a, WALL_HEIGHT), po(b, WALL_HEIGHT)], n_out,
+                      [(ub, 0.0), (ua, 0.0), (ua, WALL_HEIGHT / TILE), (ub, WALL_HEIGHT / TILE)])
+
+        # Cap the top of the wall so the thickness is closed at the eaves.
+        wall.face([p(a, WALL_HEIGHT), p(b, WALL_HEIGHT),
+                   po(b, WALL_HEIGHT), po(a, WALL_HEIGHT)], (0.0, 1.0, 0.0),
+                  [(ua, 0.0), (ub, 0.0), (ub, WALL_THICK / TILE), (ua, WALL_THICK / TILE)])
+
         # Cone to the apex
         # Conical UVs: u round the eaves, v up the slope to the apex.
         roof.face([p(a, WALL_HEIGHT), p(b, WALL_HEIGHT), (0.0, APEX_HEIGHT, -SEAT_Z)],

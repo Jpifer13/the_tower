@@ -84,6 +84,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # From outside the tower, looking back at the window opening.
+    def Camera "Outside"
+    {
+        float focalLength = 32
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-8, 125, 0)
+        double3 xformOp:translate = (24.1, 8.0, -13.7)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Standing at the window, close enough to read the reveal.
     def Camera "AtWindow"
     {
