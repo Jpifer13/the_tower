@@ -186,10 +186,10 @@ occasionally, calm where your work lives.
 
 Geometry near, HDRI far. Both, not either.
 
-| Distance | Approach | Why |
+| Distance | Approach | Status |
 |---|---|---|
-| 0–50 m | **Real geometry** — tower wall dropping away, 2–3 neighbouring rooftops, a tree | Parallax. This is the whole point |
-| Far / sky | **HDRI** (4–8K) or a gradient sky | Cheap, and it's the light source anyway |
+| 0–50 m | **Real geometry** — tower wall dropping away, 2–3 neighbouring rooftops, a tree | **Not built yet** — the parallax half |
+| Far / sky | **HDRI** on a skydome | **Built.** Tone-mapped to JPG, unlit, dropped 26 m so you look down on it |
 
 **Why not HDRI alone.** An equirectangular HDRI is treated as infinitely distant, so it never
 shifts as you move. Walking to the window would change nothing about the view, which reads as a
@@ -203,6 +203,9 @@ believable sky is wasted effort.
 
 **Nice side effect:** the geometry is lit by whatever sky is active, so time-of-day and weather
 transitions come along for free instead of needing three baked variants of the exterior.
+
+**Tower elevation:** the skydome is dropped 26 m below the floor, so the room reads as being
+up a tower rather than at ground level. One constant, `TOWER_ELEV`.
 
 **Scope control:** only model the roughly 90° cone visible through the window. Everything behind
 the user's back outside the tower does not exist.

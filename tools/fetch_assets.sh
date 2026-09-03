@@ -42,4 +42,16 @@ fi
 fetch_tex floor dark_wooden_planks
 fetch_tex roof  brown_planks_03
 
+echo "==> Skydome textures (tone-mapped from the HDRIs)"
+# The window needs something to look at. RealityKit wants an LDR texture for an
+# unlit skydome, so the HDRIs are converted rather than used directly.
+for pair in "kloofendal_38d_partly_cloudy:sky_day" "rogland_sunset:sky_sunset" \
+            "rogland_moonlit_night:sky_night"; do
+  src="assets/hdri/${pair%%:*}-4k.hdr"; dst="$RK/${pair##*:}.jpg"
+  [ -f "$dst" ] && { echo "    ${pair##*:} already present"; continue; }
+  [ -f "$src" ] || { echo "    !! missing $src"; continue; }
+  sips -s format jpeg -s formatOptions 82 "$src" --out "$dst" >/dev/null 2>&1
+  echo "    ${pair##*:}"
+done
+
 echo "Done. Licences: assets/licenses/  Manifest: assets/ASSET_MANIFEST.md"

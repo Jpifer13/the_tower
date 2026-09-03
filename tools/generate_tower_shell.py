@@ -28,7 +28,16 @@ SEGMENTS      = 96     # around the circle
 # USER-RELATIVE space: origin = your seat, -Z = the desk you face, +X = your right.
 WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = -55.0  # mirrored, to your left
-WINDOW_WIDTH  = 1.30   # m, along the arc
+WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
+WALL_THICK    = 0.60   # m, real thickness so the window gets a deep stone reveal
+
+# Skydome — what you see through the window until real exterior geometry exists.
+SKY_RADIUS    = 140.0
+SKY_SEG, SKY_RING = 96, 48
+SKY_TEXTURE   = os.environ.get("TOWER_SKY", "sky_day")
+# How high the room sits above the ground. Drops the skydome by the same amount so
+# you look *down* on the landscape, which is the whole point of being up a tower.
+TOWER_ELEV    = 26.0
 WINDOW_SILL   = 0.40   # m
 WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby at 18 ft
 
@@ -65,7 +74,7 @@ SEAT_Z = -(R - DESK_D - 0.05) + SEAT_SETBACK
 
 
 def p(theta_deg, y):
-    """Point on the wall circle, already shifted into user-relative space.
+    """Point on the inner wall face, in user-relative space.
 
     theta 0 = straight ahead (the desk), +ve = toward your right.
     """
@@ -73,7 +82,18 @@ def p(theta_deg, y):
     return (R * math.sin(t), y, -R * math.cos(t) - SEAT_Z)
 
 
+def po(theta_deg, y):
+    """Same, on the outer face of the wall."""
+    t = math.radians(theta_deg)
+    ro = R + WALL_THICK
+    return (ro * math.sin(t), y, -ro * math.cos(t) - SEAT_Z)
+
+
 TILE = 2.0  # metres per texture repeat, so texel density is uniform everywhere
+
+# Floor under roughness. The slate maps dip near zero in places, which renders as
+# mirror-bright highlights and makes the stone look wet. Remap into [ROUGH_MIN, 1].
+ROUGH_MIN = 0.45
 
 
 class Mesh:
@@ -104,6 +124,8 @@ class Mesh:
         self.idx.extend(range(base, base + len(verts)))
 
     def material_usda(self, indent="    "):
+        if self.name == "Sky":
+            return self._sky_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -151,6 +173,8 @@ class Mesh:
 {i}        token inputs:wrapS = "repeat"
 {i}        token inputs:wrapT = "repeat"
 {i}        token inputs:sourceColorSpace = "raw"
+{i}        float4 inputs:scale = ({1.0 - ROUGH_MIN}, {1.0 - ROUGH_MIN}, {1.0 - ROUGH_MIN}, 1)
+{i}        float4 inputs:bias = ({ROUGH_MIN}, {ROUGH_MIN}, {ROUGH_MIN}, 0)
 {i}        float outputs:r
 {i}    }}
 {i}    def Shader "Surface"
@@ -160,6 +184,40 @@ class Mesh:
 {i}        normal3f inputs:normal.connect = {base}/normalTex.outputs:rgb>
 {i}        float inputs:roughness.connect = {base}/roughTex.outputs:r>
 {i}        float inputs:metallic = 0
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _sky_material(self, indent):
+        """Unlit: the sky emits, so it doesn't darken with the room's lighting."""
+        i, n, t = indent, self.name, self.texture
+        base = f"</TowerShell/{n}Mat"
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = {base}/Surface.outputs:surface>
+{i}    def Shader "stReader"
+{i}    {{
+{i}        uniform token info:id = "UsdPrimvarReader_float2"
+{i}        token inputs:varname = "st"
+{i}        float2 outputs:result
+{i}    }}
+{i}    def Shader "skyTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/{t}.jpg@
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "repeat"
+{i}        token inputs:wrapT = "clamp"
+{i}        float3 outputs:rgb
+{i}    }}
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0, 0, 0)
+{i}        color3f inputs:emissiveColor.connect = {base}/skyTex.outputs:rgb>
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 1
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -263,7 +321,24 @@ def build():
                   (-math.sin(t) * 0.5, -0.5, -math.cos(t) * 0.5),
                   [(ua, 0.0), (ub, 0.0), ((ua + ub) / 2.0, slope / TILE)])
 
-    parts = [floor, wall, roof]
+    # Window reveal — the faces you see when you lean into the opening. Design doc
+    # calls this the one place worth spending detail, since it's read at ~30 cm.
+    reveal = Mesh("Reveal", (0.42, 0.41, 0.39), texture="wall", tint=WALL_TINT)
+    for side, th in ((-1, w0), (1, w1)):
+        t = math.radians(th)
+        nrm = (-side * math.cos(t), 0.0, -side * math.sin(t))
+        quad = [p(th, WINDOW_SILL), po(th, WINDOW_SILL),
+                po(th, WINDOW_HEAD), p(th, WINDOW_HEAD)]
+        uv = [(0.0, WINDOW_SILL / TILE), (WALL_THICK / TILE, WINDOW_SILL / TILE),
+              (WALL_THICK / TILE, WINDOW_HEAD / TILE), (0.0, WINDOW_HEAD / TILE)]
+        reveal.face(quad, nrm, uv)
+    for y, nrm in ((WINDOW_SILL, (0.0, 1.0, 0.0)), (WINDOW_HEAD, (0.0, -1.0, 0.0))):
+        quad = [p(w0, y), p(w1, y), po(w1, y), po(w0, y)]
+        uv = [(0.0, 0.0), (WINDOW_WIDTH / TILE, 0.0),
+              (WINDOW_WIDTH / TILE, WALL_THICK / TILE), (0.0, WALL_THICK / TILE)]
+        reveal.face(quad, nrm, uv)
+
+    parts = [floor, wall, roof, reveal]
     body = "".join(m.material_usda() + m.usda() for m in parts)
     return floor, body
 
@@ -308,6 +383,33 @@ def prism(mesh, start, end, width, depth, tangent):
                e1[0] * e2[1] - e1[1] * e2[0])
         ln = math.sqrt(sum(c * c for c in nrm)) or 1.0
         mesh.face(list(q), tuple(c / ln for c in nrm))
+
+
+def skydome():
+    """Inward-facing sphere carrying the sky. Placeholder for the real exterior
+    geometry the hybrid decision calls for — this is the far half of that."""
+    m = Mesh("Sky", (0.5, 0.6, 0.8), texture=SKY_TEXTURE)
+    cx, cy, cz = 0.0, -TOWER_ELEV, -SEAT_Z
+    for iy in range(SKY_RING):
+        ph0 = math.pi * iy / SKY_RING
+        ph1 = math.pi * (iy + 1) / SKY_RING
+        for ix in range(SKY_SEG):
+            th0 = 2.0 * math.pi * ix / SKY_SEG
+            th1 = 2.0 * math.pi * (ix + 1) / SKY_SEG
+
+            def pt(ph, th):
+                return (cx + SKY_RADIUS * math.sin(ph) * math.sin(th),
+                        cy + SKY_RADIUS * math.cos(ph),
+                        cz - SKY_RADIUS * math.sin(ph) * math.cos(th))
+
+            def uv(ph, th):
+                return (th / (2.0 * math.pi), 1.0 - ph / math.pi)
+
+            quad = [pt(ph0, th0), pt(ph0, th1), pt(ph1, th1), pt(ph1, th0)]
+            # Normals point inward, since it's viewed from the middle.
+            nrm = [tuple(-(c[k] - (cx, cy, cz)[k]) / SKY_RADIUS for k in range(3)) for c in quad]
+            m.face(quad, nrm, [uv(ph0, th0), uv(ph0, th1), uv(ph1, th1), uv(ph1, th0)])
+    return m.material_usda() + m.usda()
 
 
 def roof_structure():
@@ -380,6 +482,7 @@ def main():
                (0.55, 0.25, 0.15))
 
     beams = roof_structure()
+    sky = skydome()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(f'''#usda 1.0
@@ -396,7 +499,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{sky}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -406,6 +509,7 @@ def Xform "TowerShell"
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
     print(f"  roof: wall plate + apex boss (no rafters)")
+    print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
 
 
 if __name__ == "__main__":

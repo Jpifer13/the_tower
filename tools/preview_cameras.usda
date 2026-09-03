@@ -74,6 +74,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Standing at the window, close enough to read the reveal.
+    def Camera "AtWindow"
+    {
+        float focalLength = 20
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-2, -66, 0)
+        double3 xformOp:translate = (0.9, 1.65, 2.0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Close on where the cone meets the stone, to inspect the junction.
     def Camera "Eaves"
     {
