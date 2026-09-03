@@ -23,7 +23,29 @@ hide every other app, including with `.mixed` immersion. Apple documents this. T
 apps cannot publish into the system Environments picker; Disney+ and HBO Max have the same
 limitation. Details: [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
 
-**Decision:** **PENDING** — product direction needs re-deciding before Phase 3 spending.
+**Decision:** Resolved 2026-09-03 by changing the goal — see below.
+
+---
+
+## 2026-09-03 — The Tower is a personal tool, not a product
+
+**Context:** The immersive-space constraint made the "office backdrop" premise unsellable, which
+forced a choice between reworking the product or rethinking the goal.
+
+**Decision:** Build it for me. An App Store release may follow as a generic version, but it drives
+no decisions. Developer Mode plus Allow Mac Virtual Display is an acceptable requirement for an
+audience of one, so the office concept works as originally imagined.
+
+**Why:** The point was always to have this room to work in. Optimising it for strangers was
+adding constraints (App Review, onboarding, ROI on assets) in service of revenue that was never
+the motivation.
+
+**Consequences:**
+- Phase 3 unblocked; budget is taste-driven rather than ROI-driven.
+- Phase 7 (App Store) becomes optional and deferred.
+- Phase 5 must keep the scene data-driven — this needs to stay tweakable for years.
+- Still buy commercial-use asset licences, to keep the generic-version option cheap.
+- **Owning a Vision Pro moves from "nice for testing" to a hard prerequisite.**
 
 ---
 

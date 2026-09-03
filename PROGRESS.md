@@ -1,6 +1,8 @@
 # Progress Tracker
 
-Status: **Phase 1 — learning in progress** (hands-on RCP). **Phase 2 — design drafted**, running in parallel.
+Status: **Phase 1 — learning in progress** (hands-on RCP). **Phase 2 — design agreed.** Phase 3 unblocked.
+
+**Direction (2026-09-03): this is a personal tool, not a product.** App Store is optional and deferred.
 Started: 2026-09-03
 Target ship: ~14 weekends from start
 
@@ -122,14 +124,22 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 
 ## Phase 6 — Real Device Testing (Weekend 11)
 
-- [ ] Device access arranged (Developer Lab booked / unit bought or borrowed)
+> ⚠ **Now a hard prerequisite, not a test step.** A personal daily-use tool needs a headset you
+> own. A Developer Lab visit no longer covers it. Decide early — it changes when this is usable.
+
+- [ ] **Vision Pro acquired** (used ~$2.5–3K) — blocking for daily use
+- [ ] Developer Mode + *Allow Mac Virtual Display* enabled (Settings → Privacy & Security, then Developer)
 - [ ] Run the full checklist in `testing/device-test-checklist.md`
 - [ ] Punch-list written and prioritized in `testing/`
 
 **Exit criterion:** Tested on hardware, no critical issues, honest punch-list.
 **⚠ DECISION GATE 5** — Any structural rework needed? Record verdict.
 
-## Phase 7 — Polish & Submit (Weekends 12–14)
+## Phase 7 — Polish & Submit (Weekends 12–14) — **OPTIONAL / DEFERRED**
+
+> No longer the goal. Revisit only if you want a generic version on the App Store.
+> Everything below still applies if you do.
+
 
 - [ ] Every punch-list item addressed or consciously cut
 - [ ] Audio levels re-tuned for headset

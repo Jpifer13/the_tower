@@ -1,6 +1,8 @@
 # The Tower
 
-A wizard-themed immersive environment app for Apple Vision Pro. One cozy circular tower study with live weather, time-of-day, and subtle interactions. Target: App Store at $9.99.
+A wizard-themed immersive environment for Apple Vision Pro — **a personal tool, built to be worked in.** One circular tower study with live weather, time-of-day and subtle interactions, with the Mac Virtual Display floating over the desk.
+
+Built for an audience of one. An App Store release may follow as a stripped-down generic version, but it drives no decisions. See [`docs/decisions/DECISIONS.md`](docs/decisions/DECISIONS.md).
 
 Full plan: [wizard_tower_build_plan.md](wizard_tower_build_plan.md)
 Current status: [PROGRESS.md](PROGRESS.md)
@@ -39,4 +41,6 @@ the_tower/
 1. **PROGRESS.md is the dashboard.** Check items off there; don't edit the build plan.
 2. **No asset enters `assets/models|audio|hdri` without a row in ASSET_MANIFEST.md and a folder in `assets/licenses/`.** License hygiene is a hard rule, not a chore.
 3. **Decision gates are real.** At the end of Phases 1, 2, 3, 4, and 6, write the verdict in `docs/decisions/DECISIONS.md` before starting the next phase.
+4. **Buy commercial-use asset licences anyway.** Usually the same price, and it keeps a generic App Store version cheap to do later instead of requiring a re-buy.
+5. **Keep the scene data-driven.** This has to stay tweakable for years — lighting, audio, time-of-day and prop placement belong in RCP or config, not hardcoded in Swift.
 4. **The Xcode project stays inside `app/`** so project docs, assets-in-progress, and marketing material don't pollute the build tree. Only assets that ship get copied into the RCP package.

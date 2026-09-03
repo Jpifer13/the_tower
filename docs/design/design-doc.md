@@ -2,34 +2,25 @@
 
 > Phase 2 deliverable. Decisions locked 2026-09-03; open questions marked **OPEN**.
 
-> ## ⛔ BLOCKED — the premise below does not work on visionOS
+> ## ✅ UNBLOCKED — this is a personal tool first
 >
-> This doc was written around the room being "an office with atmosphere": a backdrop your
-> real apps float inside. **That is not possible for a third-party app.** When an app opens
-> an `ImmersiveSpace`, visionOS hides every other app — verified empirically, see
-> [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
+> Direction changed 2026-09-03: The Tower is built for Jake to use, not to sell. An App Store
+> release may follow as a stripped-down generic version, but it drives no decisions.
 >
-> Everything about the room's *form* below still stands. What's invalid is its *job*:
-> "backdrop for my other apps", "walls host the user's app windows", and pacing around during
-> a meeting all assume other apps stay visible. They won't.
->
-> **One exception, verified:** with Developer Mode and *Allow Mac Virtual Display* enabled, the
-> Mac Virtual Display does persist inside a third-party immersive space. So the office concept
-> works for you personally — tower plus Mac desktop plus terminal. It can't be sold on, since
-> it needs Developer Mode and covers only the Mac screen, not native visionOS apps.
->
-> **Shared Space is not a way around this**: volumes are bounded, so you'd get a diorama in a
-> box rather than a room you're inside.
->
-> **Do not start Phase 3 shopping until the product direction is re-decided.**
+> This resolves the constraint that blocked the original premise. A third-party immersive space
+> hides all other apps — but **Developer Mode → Allow Mac Virtual Display** lets the Mac Virtual
+> Display persist inside it, and enabling that is fine for an audience of one. The office concept
+> works: the tower, your Mac desktop, Ghostty, and room to pace.
+> Background: [`../learning-notes/immersive-space-hides-other-apps.md`](../learning-notes/immersive-space-hides-other-apps.md).
 
 ## The room in one paragraph
 
 A circular study at the top of a stone tower — a working office, not a museum piece. You sit
 at a desk facing a tall window, with a fire going quietly off to one side and bookshelves
-around the curve of the wall. Your real apps float over the desk and hang on the walls. The
-weather and the light outside the window match the real world, and so does the sound coming
-through it. When you need a break you get up and go look out.
+around the curve of the wall. Your Mac desktop floats over the desk — terminal, editor,
+whatever you're working in — with the tower's own panels beside it. The weather and the light
+outside the window match the real world, and so does the sound coming through it. When you
+need a break, or you're on a call, you get up and pace, or go look out the window.
 
 ## Core decisions
 
@@ -39,7 +30,9 @@ through it. When you need a break you get up and go look out.
 | Primary posture | Seated at the desk, window ahead | App windows land naturally over the desk |
 | Secondary posture | **Standing — user can walk to the window** | Explicit requirement; see *Consequences* below |
 | Room's job | An office with atmosphere | Backdrop for real work first, ambience second |
-| Wall usage | Must accommodate user-placed app windows | Requires deliberate negative space |
+| Audience | **Me.** Generic App Store version optional, later | No App Review or onboarding pressure on v1 |
+| Work surface | **Mac Virtual Display** (Developer Mode) | The one thing that survives inside an immersive space |
+| Wall usage | Must accommodate the Mac display + own panels | Requires deliberate negative space |
 | Ceiling height | **OPEN** — 12–15 ft proposed | Towers want height; confirm when sketching |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
 
@@ -88,6 +81,25 @@ This is the decision with the most technical weight, so it's worth being explici
    not a hike. Something to confirm on device in Phase 6.
 5. **The floor matters now.** In a seated design the floor is barely seen. Here it's underfoot
    and in view while walking.
+
+## What "for me" changes
+
+Dropping the sellable-app goal removes most of the constraints that were shaping v1:
+
+- **Developer Mode is fine.** Mac Virtual Display is the primary work surface, not a footnote.
+- **No App Review pressure.** No minimum-functionality argument, privacy labels, reviewer notes,
+  onboarding, or "does a stranger understand this in 10 seconds".
+- **No ROI maths.** Asset budget is whatever the room is worth to you, not what 2,000 sales justify.
+- **WeatherKit can be simpler.** Your location can be a hardcoded default; no permission-priming UX.
+- **Customisability becomes a real requirement.** You'll want to keep fiddling with this for years,
+  so Phase 5 should keep lighting, audio, time-of-day and props **data-driven** — editable in
+  RCP or a config file, not hardcoded in Swift. That's the one thing worth over-engineering.
+
+Two things worth *keeping* even though nothing forces them:
+
+- **Clean asset licences.** Buy commercial-use rights anyway. It's usually the same price and it
+  preserves the option to ship a generic version without re-buying everything.
+- **Separate personal config from defaults.** So a shippable version is a config swap, not a fork.
 
 ## Design tension to hold
 
@@ -144,6 +156,7 @@ Needs crossfades, not hard cuts, on both time-of-day and weather transitions.
 **Should-have**
 - [ ] WeatherKit on the window — visuals *and* audio
 - [ ] Candle relight on tap
+- [ ] Data-driven scene config so it stays tweakable without code changes
 
 **Nice-to-have**
 - [ ] Fireplace toggle
