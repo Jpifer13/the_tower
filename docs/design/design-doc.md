@@ -1,72 +1,139 @@
 # The Tower — Design Doc (v1)
 
-> Phase 2 deliverable. Keep this to one page. If you can't describe the room in 60 seconds from this doc, it's not done.
+> Phase 2 deliverable. Decisions locked 2026-09-03; open questions marked **OPEN**.
 
 ## The room in one paragraph
 
-_(Write this last. What is it, who sits in it, why does it feel good to be there?)_
+A circular study at the top of a stone tower — a working office, not a museum piece. You sit
+at a desk facing a tall window, with a fire going quietly off to one side and bookshelves
+around the curve of the wall. Your real apps float over the desk and hang on the walls. The
+weather and the light outside the window match the real world, and so does the sound coming
+through it. When you need a break you get up and go look out.
 
 ## Core decisions
 
 | Decision | Choice | Rationale |
 |---|---|---|
-| Rooms in v1 | 1 — circular tower study _(recommended)_ | Shippable scope |
-| Posture | Seated / Standing | |
-| Optimal viewing position | | |
-| Ceiling height | 12–15 ft target: ___ | Towers want height |
-| Interaction surface | | What does the user actually *do*? |
+| Rooms in v1 | One circular tower study | Smallest shippable scope; extra rooms are v2 IAPs |
+| Primary posture | Seated at the desk, window ahead | App windows land naturally over the desk |
+| Secondary posture | **Standing — user can walk to the window** | Explicit requirement; see *Consequences* below |
+| Room's job | An office with atmosphere | Backdrop for real work first, ambience second |
+| Wall usage | Must accommodate user-placed app windows | Requires deliberate negative space |
+| Ceiling height | **OPEN** — 12–15 ft proposed | Towers want height; confirm when sketching |
+| Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
 
-## Floor plan
+## Layout (proposal — amend on paper)
 
-_(Photo or scan of the paper sketch goes here — save as `floor-plan.jpg` in this folder.)_
+Top-down, desk at the "south" edge, user facing north toward the window:
 
-- User seat position:
-- Window position:
-- Desk position:
-- Shelves:
-- Fireplace:
-- Door:
+```
+              ╭─────────────────────╮
+          ╭───╯      WINDOW         ╰───╮     ← tall, reachable, the focal point
+        ╭─╯    (approach + lean on)     ╰─╮
+       │                                  │
+       │  shelves                shelves  │
+       │                                  │
+       │            [ open floor ]        │   ← must be walkable, desk→window
+       │                                  │
+       │  FIREPLACE              clear    │   ← clear wall = app window real estate
+       │   (side)                 wall    │
+        ╲                                ╱
+         ╲───────╮   DESK    ╭──────────╱     ← user seated here, facing window
+                 ╰───────────╯
+                      door
+```
+
+- **Window**: opposite the desk, floor-to-near-ceiling if the geometry allows. Reachable.
+- **Fireplace**: to one side, in peripheral vision when seated — warm light without glare.
+- **Clear wall**: at least one uncluttered span at seated eye height for app windows.
+- **Open floor**: an unobstructed path desk → window. No rug edges or clutter to walk "through".
+
+## Consequences of the standing requirement
+
+This is the decision with the most technical weight, so it's worth being explicit:
+
+1. **The outside view can't be a low-res HDRI.** At 3 m a 2K skybox is fine; pressed against
+   the glass it reads as a blurry photo and breaks the illusion. Options, cheapest first:
+   a 4K/8K HDRI; a 3D backdrop (a few pieces of geometry — rooftops, treeline — sitting outside
+   the window with real parallax); or a hybrid, geometry near and HDRI far. **OPEN** — decide
+   in Phase 3, because it changes what you shop for.
+2. **Window frame geometry gets inspected.** Sill, mullions and glass will be seen from ~30 cm.
+   This is the one place to spend polygons and texture resolution.
+3. **Scale errors become obvious.** Seated, you forgive a slightly-wrong room. Walking to a
+   window that turns out to be 1.4 m tall is immediately wrong. Block out against a 1.7 m
+   reference from the first hour of Phase 4.
+4. **Passthrough breakthrough.** visionOS fades passthrough in when someone walks beyond a
+   safe boundary. The desk→window walk must be short enough to stay inside it — a few steps,
+   not a hike. Something to confirm on device in Phase 6.
+5. **The floor matters now.** In a seated design the floor is barely seen. Here it's underfoot
+   and in view while walking.
+
+## Design tension to hold
+
+A wizard study wants to be *cluttered* — that's the whole charm. An office wants *clean wall
+space* for floating app windows. If the room is dressed evenly, the app windows will sit on
+top of visual noise and the space will feel cramped in daily use.
+
+Resolution: concentrate the clutter (shelves, bottles, scrolls) on the flanks and behind the
+user; keep the window wall and one side wall deliberately quiet. Detail where you look
+occasionally, calm where your work lives.
 
 ## Lighting plan
 
-> Lighting is 60% of what makes the space feel real.
-
-| Source | Type | Color/temp | Day | Sunset | Night |
+| Source | Type | Colour | Day | Sunset | Night |
 |---|---|---|---|---|---|
-| Window | Directional + IBL | | sun | golden | moon |
-| Fireplace | Point, flicker | 2000–2700 K | | | |
-| Candles (×__) | Point, flicker | 2000–2700 K | | | |
-| Lanterns | | | | | |
+| Window | Directional + IBL | daylight → warm → cool | key light, cool white | low, strong orange | dim blue moonlight |
+| Fireplace | Point, flickering | 1900–2200 K | subtle | prominent | primary warm source |
+| Candles (desk + shelves) | Point, flickering | 2000–2400 K | mostly unlit | lit | lit, main task light |
+| Lantern (optional) | Point | 2200 K | off | on | on |
+
+Window IBL drives global ambience and swaps with time of day and weather. Fire and candles are
+the only real-time lights; everything else bakes. (Phase 4 performance budget.)
 
 ## Audio plan
 
-| Source | Sound | Position | Loop/one-shot | Falloff notes |
+Two sources do the heavy lifting: the window and the fire.
+
+| Source | Sound | Position | Behaviour |
+|---|---|---|---|
+| Window | Wind, rain, birdsong, distant town | At the window, spatial | **Varies with time of day + weather** |
+| Fireplace | Light crackle | At the hearth, spatial | Loop; quiet — "light fire", not a bonfire |
+| Room tone | Stone-room ambience | Non-spatial bed | Constant, very low |
+| Owl | Distant hoot | Outside the window | Night only, occasional |
+| Pages / settling | Book rustle, wood creak | Around the room | Rare, randomised |
+
+Window audio matrix — **the differentiator, alongside the visual weather**:
+
+| | Clear | Rain | Snow | Wind |
 |---|---|---|---|---|
-| Window | Wind | | loop | |
-| Fireplace | Crackle | | loop | |
-| Ambient | Room tone | non-spatial? | loop | |
-| Owl | Distant hoot | outside window | occasional | |
-| Books | Page rustle | | occasional | |
+| **Day** | birdsong, faint town | rain on glass + gutter | muffled hush | gusts round the tower |
+| **Sunset** | evening birds, bells | steady rain | hush | moderate gusts |
+| **Night** | owl, crickets, wind | rain, no birds | deep silence | strong gusts, shutter rattle |
+
+Needs crossfades, not hard cuts, on both time-of-day and weather transitions.
 
 ## v1 feature list
 
 **Must-have**
-- [ ] One fully-realized room
-- [ ] Ambient audio
-- [ ] Time-of-day toggle (day / sunset / night)
+- [ ] One fully-realised circular study
+- [ ] Ambient audio: fire + window + room tone
+- [ ] Time-of-day: day / sunset / night, real-time synced with manual override
+- [ ] Walkable desk → window, holding up at close range
 
 **Should-have**
-- [ ] WeatherKit on the window
-- [ ] Candle relight tap
+- [ ] WeatherKit on the window — visuals *and* audio
+- [ ] Candle relight on tap
 
 **Nice-to-have**
 - [ ] Fireplace toggle
-- [ ] Floating candles with drift
-- [ ] Night fireflies
+- [ ] Night fireflies / dust motes in window light
 
-**Explicitly NOT in v1** (v2 candidates — do not build now)
-- Additional rooms (IAPs), Pomodoro tome, owl flyby, crystal ball media player
+**Explicitly NOT v1** — additional rooms (IAP), Pomodoro tome, owl flyby, crystal ball media player.
+Leave physical room on the desk for the Pomodoro object so v2 doesn't require a re-layout.
 
-## Mood board
+## Still to do (yours)
 
-20–30 reference images in [`mood-board/`](mood-board/). Themes: wizard towers, alchemist studies, old libraries. **Nothing derivative of branded IP** (Hogwarts, Skyrim, LOTR, D&D).
+- [ ] Sketch the floor plan and elevation on paper; photo into this folder as `floor-plan.jpg`
+- [ ] Confirm ceiling height against the sketch
+- [ ] 20–30 reference images into `mood-board/` — no branded IP
+- [ ] The 60-second description test

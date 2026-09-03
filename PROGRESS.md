@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Status: **Phase 1 — prep staged, learning in progress.**
+Status: **Phase 1 — learning in progress** (hands-on RCP). **Phase 2 — design drafted**, running in parallel.
 Started: 2026-09-03
 Target ship: ~14 weekends from start
 
@@ -46,17 +46,19 @@ Orientation, links and a Diorama dissection guide: [`docs/learning-notes/phase-1
 **Exit criterion:** Asset → lit RCP scene → particles + audio → loads in app. Unblocked, not fast.
 **⚠ DECISION GATE 1** — Did RCP click? Record verdict in `docs/decisions/DECISIONS.md`.
 
-## Phase 2 — Design the Tower (Weekend 4)
+Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 
-- [ ] Decide: single room (recommended) vs multi-room
-- [ ] Decide: seated vs standing optimal position
-- [ ] Define the interaction surface (what does the user *do*?)
-- [ ] Draw top-down floor plan (photo/scan into `docs/design/`)
-- [ ] Draw elevation with ceiling height (12–15 ft)
-- [ ] Mark every light source on the plan
-- [ ] Mark every audio source on the plan
+- [x] Decided: one circular tower study
+- [x] Decided: seated at the desk facing the window — **plus standing / walk to the window**
+- [x] Interaction surface defined: an office with atmosphere; walls host the user's app windows
+- [x] Layout proposal drafted (top-down, in the design doc)
+- [x] Lighting plan drafted — window IBL, fire and candles the only real-time lights
+- [x] Audio plan drafted — including the time-of-day × weather window matrix
+- [x] v1 feature list agreed
+- [ ] Draw the floor plan and elevation on paper → `docs/design/floor-plan.jpg`
+- [ ] Confirm ceiling height (12–15 ft proposed)
+- [ ] Decide the outside-view approach: high-res HDRI vs 3D backdrop (**changes Phase 3 shopping**)
 - [ ] Collect 20–30 reference images into `docs/design/mood-board/`
-- [ ] Fill out `docs/design/design-doc.md` including v1 feature list
 - [ ] 60-second room description test — can you describe it cold?
 
 **Exit criterion:** One-page design doc complete with floor plan, lighting plan, audio plan, feature list.
@@ -68,7 +70,9 @@ Orientation, links and a Diorama dissection guide: [`docs/learning-notes/phase-1
 - [ ] Furniture sourced ($20–80)
 - [ ] Props sourced — books, candles, scrolls, bottles, crystal ball, quill ($20–60)
 - [ ] Window view HDRI(s) sourced — day / sunset / night ($0–30, Poly Haven first)
-- [ ] Audio sourced — fire, wind, owl, page rustle, room tone (freesound, $0)
+- [ ] Audio sourced — **expanded by the design**: fire, room tone, owl, page rustle, *plus*
+      window beds for clear/rain/snow/wind × day/sunset/night (freesound, $0)
+- [ ] Outside view: high-res HDRI **or** 3D backdrop — decide before shopping (see design doc)
 - [ ] Every asset has a row in `assets/ASSET_MANIFEST.md`
 - [ ] Every asset has a license folder in `assets/licenses/`
 - [ ] All FBX/OBJ converted to USDZ via Blender, originals kept in `assets/source/`

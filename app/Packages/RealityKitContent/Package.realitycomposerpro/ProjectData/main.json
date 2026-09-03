@@ -1,5 +1,9 @@
 {
   "pathsToIds" : {
     "RealityKitContent\/Sources\/RealityKitContent\/RealityKitContent.rkassets\/Tower.usda" : "CFE4C3F0-BCAE-4D9C-B500-E0B759CE08D2"
+  },
+  "projectID" : 3747861475207475506,
+  "uuidToIntID" : {
+    "CFE4C3F0-BCAE-4D9C-B500-E0B759CE08D2" : -214067847268767945
   }
 }
