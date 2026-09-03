@@ -29,7 +29,7 @@ SEGMENTS      = 96     # around the circle
 WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = -55.0  # mirrored, to your left
 WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
-WALL_THICK    = 0.60   # m, real thickness so the window gets a deep stone reveal
+WALL_THICK    = 0.35   # m, wall thickness = depth of the window reveal
 
 # Skydome — what you see through the window until real exterior geometry exists.
 SKY_RADIUS    = 140.0
@@ -268,7 +268,14 @@ class Mesh:
 
 def build():
     half = math.degrees(WINDOW_WIDTH / 2.0 / R)
-    w0, w1 = WINDOW_CENTRE - half, WINDOW_CENTRE + half
+    step_deg = 360.0 / SEGMENTS
+    # Snap the opening to whole wall segments. Testing segment midpoints against a
+    # free-floating angle put the actual hole up to half a segment away from where
+    # the reveal was built, which buried one jamb in the wall and left the other
+    # hanging in mid air.
+    SEG0 = int(round((WINDOW_CENTRE - half) / step_deg))
+    SEG1 = max(SEG0 + 1, int(round((WINDOW_CENTRE + half) / step_deg)))
+    w0, w1 = SEG0 * step_deg, SEG1 * step_deg
 
     floor = Mesh("Floor", (0.28, 0.26, 0.24), texture="floor")
     wall  = Mesh("Wall",  (0.46, 0.44, 0.41), texture=WALL_TEXTURE, tint=WALL_TINT)
@@ -303,7 +310,7 @@ def build():
         t = math.radians(mid)
         n = (-math.sin(t), 0.0, -math.cos(t))
 
-        in_window = (w0 <= mid <= w1)
+        in_window = (SEG0 <= s < SEG1)
         # Cylindrical UVs: u follows the circumference, v is height. No stretching.
         ua, ub = arc_u(a), arc_u(b)
         if in_window:
@@ -324,19 +331,24 @@ def build():
     # Window reveal — the faces you see when you lean into the opening. Design doc
     # calls this the one place worth spending detail, since it's read at ~30 cm.
     reveal = Mesh("Reveal", (0.42, 0.41, 0.39), texture="wall", tint=WALL_TINT)
-    for side, th in ((-1, w0), (1, w1)):
+
+    # Jambs, on the exact segment boundaries the opening was cut on.
+    for side, th in ((-1.0, w0), (1.0, w1)):
         t = math.radians(th)
-        nrm = (-side * math.cos(t), 0.0, -side * math.sin(t))
-        quad = [p(th, WINDOW_SILL), po(th, WINDOW_SILL),
-                po(th, WINDOW_HEAD), p(th, WINDOW_HEAD)]
-        uv = [(0.0, WINDOW_SILL / TILE), (WALL_THICK / TILE, WINDOW_SILL / TILE),
-              (WALL_THICK / TILE, WINDOW_HEAD / TILE), (0.0, WINDOW_HEAD / TILE)]
-        reveal.face(quad, nrm, uv)
+        nrm = (side * math.cos(t), 0.0, side * math.sin(t))
+        reveal.face([p(th, WINDOW_SILL), po(th, WINDOW_SILL),
+                     po(th, WINDOW_HEAD), p(th, WINDOW_HEAD)], nrm,
+                    [(0.0, WINDOW_SILL / TILE), (WALL_THICK / TILE, WINDOW_SILL / TILE),
+                     (WALL_THICK / TILE, WINDOW_HEAD / TILE), (0.0, WINDOW_HEAD / TILE)])
+
+    # Sill and head follow the curve of the wall rather than cutting across it.
     for y, nrm in ((WINDOW_SILL, (0.0, 1.0, 0.0)), (WINDOW_HEAD, (0.0, -1.0, 0.0))):
-        quad = [p(w0, y), p(w1, y), po(w1, y), po(w0, y)]
-        uv = [(0.0, 0.0), (WINDOW_WIDTH / TILE, 0.0),
-              (WINDOW_WIDTH / TILE, WALL_THICK / TILE), (0.0, WALL_THICK / TILE)]
-        reveal.face(quad, nrm, uv)
+        for seg in range(SEG0, SEG1):
+            a, b = seg * step_deg, (seg + 1) * step_deg
+            u0 = (a - w0) / 360.0 * (2.0 * math.pi * R) / TILE
+            u1 = (b - w0) / 360.0 * (2.0 * math.pi * R) / TILE
+            reveal.face([p(a, y), p(b, y), po(b, y), po(a, y)], nrm,
+                        [(u0, 0.0), (u1, 0.0), (u1, WALL_THICK / TILE), (u0, WALL_THICK / TILE)])
 
     parts = [floor, wall, roof, reveal]
     body = "".join(m.material_usda() + m.usda() for m in parts)
@@ -505,7 +517,8 @@ def Xform "TowerShell"
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
     print(f"  eaves {WALL_HEIGHT:.2f} m ({WALL_HEIGHT / FT:.1f} ft), "
           f"apex {APEX_HEIGHT:.2f} m ({APEX_HEIGHT / FT:.1f} ft)")
-    print(f"  window {WINDOW_WIDTH} m wide at {WINDOW_CENTRE}deg (right), {WINDOW_SILL}-{WINDOW_HEAD} m")
+    print(f"  window {WINDOW_WIDTH} m wide at {WINDOW_CENTRE}deg (right), "
+          f"{WINDOW_SILL}-{WINDOW_HEAD} m, reveal {WALL_THICK} m deep")
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
     print(f"  roof: wall plate + apex boss (no rafters)")

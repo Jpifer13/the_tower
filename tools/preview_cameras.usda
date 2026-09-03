@@ -74,6 +74,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # The whole opening, square on — all four reveal faces visible at once.
+    def Camera "WindowWide"
+    {
+        float focalLength = 13
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (0, -55, 0)
+        double3 xformOp:translate = (-0.4, 1.85, 2.9)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Standing at the window, close enough to read the reveal.
     def Camera "AtWindow"
     {
