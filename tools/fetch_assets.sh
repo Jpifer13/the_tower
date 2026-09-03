@@ -27,6 +27,18 @@ fetch_tex() {  # role, polyhaven id
   echo "    $1 ($2)"
 }
 fetch_tex wall  castle_wall_slates
+
+# The slate ships warm, and no amount of tinting makes a warm albedo read as grey
+# stone. Desaturate the diffuse so the stone itself is neutral and the lighting is
+# free to do whatever it likes on top. Idempotent: greyscale twice is still grey.
+GRAY="/System/Library/ColorSync/Profiles/Generic Gray Gamma 2.2 Profile.icc"
+SRGB=$(ls /System/Library/ColorSync/Profiles/sRGB*.icc 2>/dev/null | head -1)
+if [ -f "$RK/wall_diff.jpg" ] && [ -f "$GRAY" ] && [ -n "$SRGB" ]; then
+  sips -M "$GRAY" "$RK/wall_diff.jpg" --out /tmp/_wall_g.jpg >/dev/null 2>&1
+  sips -M "$SRGB" /tmp/_wall_g.jpg --out "$RK/wall_diff.jpg" >/dev/null 2>&1
+  rm -f /tmp/_wall_g.jpg
+  echo "    wall diffuse desaturated"
+fi
 fetch_tex floor dark_wooden_planks
 fetch_tex roof  brown_planks_03
 

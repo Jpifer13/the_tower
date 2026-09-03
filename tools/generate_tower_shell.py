@@ -39,10 +39,11 @@ SEAT_SETBACK  = 0.30   # m you sit back from the desk edge
 # Wall look. Tint multiplies the albedo, so darkness and warmth can be dialled without
 # re-downloading a texture: (1,1,1) is untouched, lower = darker, blue-biased = cooler.
 WALL_TEXTURE  = os.environ.get("TOWER_WALL_TEX", "wall")
-# Default pulls the slate darker and cooler. Override to taste, e.g.
-#   TOWER_WALL_TINT=0.55,0.60,0.72 python3 tools/generate_tower_shell.py
+# The wall diffuse is desaturated on download (see tools/fetch_assets.sh), so this
+# only darkens and cools. Override to taste, e.g.
+#   TOWER_WALL_TINT=0.5,0.6,0.85 python3 tools/generate_tower_shell.py
 WALL_TINT     = tuple(float(v) for v in
-                      os.environ.get("TOWER_WALL_TINT", "0.72,0.76,0.84").split(","))
+                      os.environ.get("TOWER_WALL_TINT", "0.58,0.68,0.88").split(","))
 OUT_NAME      = os.environ.get("TOWER_OUT", "TowerShell.usda")
 
 OUT = (Path(__file__).parent.parent

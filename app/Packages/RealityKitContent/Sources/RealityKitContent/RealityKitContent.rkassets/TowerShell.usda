@@ -94,7 +94,7 @@ def Xform "TowerShell"
             float2 inputs:st.connect = </TowerShell/WallMat/stReader.outputs:result>
             token inputs:wrapS = "repeat"
             token inputs:wrapT = "repeat"
-            float4 inputs:scale = (0.72, 0.76, 0.84, 1)
+            float4 inputs:scale = (0.58, 0.68, 0.88, 1)
             float3 outputs:rgb
         }
         def Shader "normalTex"
