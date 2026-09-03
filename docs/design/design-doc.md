@@ -13,6 +13,14 @@
 > "backdrop for my other apps", "walls host the user's app windows", and pacing around during
 > a meeting all assume other apps stay visible. They won't.
 >
+> **One exception, verified:** with Developer Mode and *Allow Mac Virtual Display* enabled, the
+> Mac Virtual Display does persist inside a third-party immersive space. So the office concept
+> works for you personally — tower plus Mac desktop plus terminal. It can't be sold on, since
+> it needs Developer Mode and covers only the Mac screen, not native visionOS apps.
+>
+> **Shared Space is not a way around this**: volumes are bounded, so you'd get a diorama in a
+> box rather than a room you're inside.
+>
 > **Do not start Phase 3 shopping until the product direction is re-decided.**
 
 ## The room in one paragraph
