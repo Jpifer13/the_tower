@@ -44,8 +44,9 @@ final class LightRig {
     private static let flipbookColumns = 6
     /// How long the sheet's loop runs. 36 frames at roughly 24 fps.
     private static let flipbookLoopSeconds = 1.5
-    /// One particle lives for several loops, so respawns are rare.
-    private static let flipbookLifeSpan = 12.0
+    /// One particle lives for many loops, so a respawn is rare rather than every
+    /// few seconds.
+    private static let flipbookLifeSpan = 90.0
 
     /// Loads a sprite sheet from the bundle, or nil if none has been added.
     private static func flipbook(named name: String) -> TextureResource? {
@@ -102,6 +103,14 @@ final class LightRig {
         guard fireParticles == nil,
               let fire = Self.findNamed(prefix: "Fire_", in: scene).first else { return }
 
+        // A billboard is centred on its particle, so emitting at the coals put half
+        // the flame under the hearth. Lift the emitter by half the flame's height.
+        let flameSize: Float = 0.62
+        let riser = Entity()
+        riser.name = "FireParticles"
+        riser.position = [0, flameSize * 0.5 - 0.06, 0]
+        fire.addChild(riser)
+
         // This sheet is a whole campfire loop, not a single puff of flame. Sprite
         // sheets come in two kinds and they need opposite treatment: a one-flame
         // sheet is spawned many times and drifts, a full-fire loop is shown *once*
@@ -117,12 +126,15 @@ final class LightRig {
         emitter.speedVariation = 0
 
         var flame = ParticleEmitterComponent.ParticleEmitter()
-        // Long life and a matching birth rate keeps roughly one alive at a time.
+        // Spawning is stochastic, so "one on average" leaves visible gaps between
+        // one dying and the next appearing. A burst gives one immediately, and a
+        // long life means a respawn is a rare event rather than every few seconds.
+        emitter.burstCount = 1
         flame.lifeSpan = Self.flipbookLifeSpan
         flame.lifeSpanVariation = 0
         flame.birthRate = Float(1.0 / Self.flipbookLifeSpan)
         flame.birthRateVariation = 0
-        flame.size = 0.62                    // a hearth fire, not a candle
+        flame.size = flameSize               // a hearth fire, not a candle
         flame.sizeVariation = 0
         flame.acceleration = [0, 0, 0]       // it sits in the grate
         flame.dampingFactor = 0
@@ -154,8 +166,8 @@ final class LightRig {
         }
         emitter.mainEmitter = flame
 
-        fire.components.set(emitter)
-        fireParticles = fire
+        riser.components.set(emitter)
+        fireParticles = riser
     }
 
 
