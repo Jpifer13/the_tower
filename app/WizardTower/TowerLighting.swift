@@ -64,26 +64,59 @@ enum TowerLighting {
         light.color = UIColor(red: CGFloat(c.r), green: CGFloat(c.g),
                               blue: CGFloat(c.b), alpha: 1)
         entity.components.set(light)
+
+        // Directional lights cast nothing until a Shadow component is added, and
+        // its default 5 m reach does not cover a 9 m room, so the far half would
+        // stay shadowless.
+        entity.components.set(DirectionalLightComponent.Shadow(
+            shadowProjection: .automatic(maximumDistance: 28.0),
+            depthBias: 1.5))
+
         // Sunset rakes in low; midday comes from higher up.
         let height: Float = time == .sunset ? 1.6 : 5.0
         entity.look(at: [0, 1, 0], from: [5.2, height, -1.0], relativeTo: nil)
         return entity
     }
 
-    /// Warm, small point lights at each flame.
+    /// Warm lights at each flame.
+    ///
+    /// The desk candles are point lights, which in RealityKit cannot cast shadows
+    /// at all — there is no PointLightComponent.Shadow. The chandelier is a spot
+    /// light instead, pointed down, so at least one warm source throws shadows
+    /// across the room.
     @MainActor
     static func candles(for time: TimeOfDay) -> [Entity] {
         guard time.candlesLit else { return [] }
-        return candlePositions.enumerated().map { index, position in
+        let flame = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
+        var lights: [Entity] = []
+
+        for (index, position) in candlePositions.enumerated() where index < 2 {
             let entity = Entity()
             entity.name = "Candle\(index)"
             var light = PointLightComponent()
-            light.intensity = index == 2 ? 900 : 350   // the chandelier carries more
-            light.attenuationRadius = index == 2 ? 6.0 : 2.5
-            light.color = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
+            light.intensity = 350
+            light.attenuationRadius = 2.5
+            light.color = flame
             entity.components.set(light)
             entity.position = position
-            return entity
+            lights.append(entity)
         }
+
+        if let hang = candlePositions.last {
+            let entity = Entity()
+            entity.name = "Chandelier"
+            var spot = SpotLightComponent()
+            spot.intensity = 4200
+            spot.attenuationRadius = 12.0
+            spot.innerAngleInDegrees = 45
+            spot.outerAngleInDegrees = 120
+            spot.color = flame
+            entity.components.set(spot)
+            entity.components.set(SpotLightComponent.Shadow())
+            entity.position = hang
+            entity.look(at: [hang.x, 0, hang.z], from: hang, relativeTo: nil)
+            lights.append(entity)
+        }
+        return lights
     }
 }

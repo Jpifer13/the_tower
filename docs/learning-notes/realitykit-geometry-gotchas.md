@@ -74,6 +74,18 @@ xcrun simctl spawn "Apple Vision Pro" log show --info --last 3m \
 Also: never `assertionFailure` on a missing asset. It traps in debug and kills the
 app, turning a cosmetic problem into a crash with no diagnostics.
 
+## 7. Lights cast no shadows until you add a Shadow component
+
+A `DirectionalLightComponent` on its own lights the room and casts nothing. It
+needs `DirectionalLightComponent.Shadow`, and the default projection only reaches
+**5 m** — less than this room is wide, so the far half stayed shadowless. Use
+`.automatic(maximumDistance:)` sized to the room.
+
+**`PointLightComponent` has no shadow support at all** — there is no
+`PointLightComponent.Shadow` in the SDK. Candles as point lights can never cast
+shadows. `SpotLightComponent.Shadow` does exist, so anything that needs to throw
+shadows has to be a spot light.
+
 ## The pattern worth remembering
 
 Every bug here looked like it had been fixed. An edit that did not apply, a flag
