@@ -24,8 +24,10 @@ final class LightRig {
 
     let root = Entity()
 
-    /// Where the chandelier hangs. Every other flame is found in the scene.
-    private static let chandelier = SIMD3<Float>(0, 4.05, 2.95)
+    /// Every flame glows, but only the nearest few carry a light — 22 point lights
+    /// is more than the room needs and more than the device should pay for. The
+    /// rest still read as flames because the geometry is emissive.
+    private static let maxLitFlames = 10
     /// Base brightness of one candle flame. RealityKit's default point light is
     /// around 27,000, so candle values live in the low thousands — a few hundred
     /// glows without lighting anything.
@@ -143,13 +145,19 @@ final class LightRig {
         let flameColor = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
 
         if flames.isEmpty {
+            // Nearest the seat first, so the lights land where you actually are.
             flames = Self.findFlames(in: scene)
-            log.info("found \(self.flames.count) flames")
+                .sorted { simd_length($0.position(relativeTo: nil))
+                        < simd_length($1.position(relativeTo: nil)) }
+            log.info("found \(self.flames.count) flames, lighting \(min(self.flames.count, Self.maxLitFlames))")
         }
 
-        for entity in flames {
+        for (index, entity) in flames.enumerated() {
             entity.isEnabled = lit
-            guard lit else { continue }
+            guard lit, index < Self.maxLitFlames else {
+                entity.components.remove(PointLightComponent.self)
+                continue
+            }
             var light = PointLightComponent()
             light.intensity = Self.flameIntensity
             light.attenuationRadius = 4.5
@@ -168,9 +176,14 @@ final class LightRig {
             return
         }
 
-        // The chandelier is a spot light, which can cast shadows. Point lights
-        // cannot — there is no PointLightComponent.Shadow in RealityKit.
-        if chandelierLight == nil {
+        // One spot light under the chandelier, because point lights cannot cast
+        // shadows at all and the room needs at least one warm source that does.
+        // Positioned from the chandelier's own flames rather than a second constant.
+        if chandelierLight == nil,
+           let hang = Self.findFlames(in: scene)
+               .map({ $0.position(relativeTo: nil) })
+               .filter({ $0.y > 2.5 })
+               .max(by: { $0.y < $1.y }) {
             let entity = Entity()
             entity.name = "ChandelierLight"
             var spot = SpotLightComponent()
@@ -181,9 +194,8 @@ final class LightRig {
             spot.color = flameColor
             entity.components.set(spot)
             entity.components.set(SpotLightComponent.Shadow())
-            entity.position = Self.chandelier
-            entity.look(at: [Self.chandelier.x, 0, Self.chandelier.z],
-                        from: Self.chandelier, relativeTo: nil)
+            entity.position = hang
+            entity.look(at: [hang.x, 0, hang.z], from: hang, relativeTo: nil)
             root.addChild(entity)
             chandelierLight = entity
         }
@@ -201,8 +213,12 @@ final class LightRig {
                 for (index, entity) in self.flames.enumerated() where entity.isEnabled {
                     guard var light = entity.components[PointLightComponent.self] else { continue }
                     let phase = Double(index) * 1.7
-                    let wobble = sin(t * 5.3 + phase) * 0.5 + sin(t * 11.9 + phase * 2.0) * 0.3
-                    light.intensity = Self.flameIntensity * Float(1.0 + 0.18 * wobble)
+                    // Slower and deeper than the first attempt, which was
+                    // imperceptible: 18% at 5 Hz just reads as steady light.
+                    let wobble = sin(t * 2.1 + phase) * 0.55
+                        + sin(t * 4.7 + phase * 2.0) * 0.3
+                        + sin(t * 9.1 + phase * 3.0) * 0.15
+                    light.intensity = Self.flameIntensity * Float(1.0 + 0.42 * wobble)
                     entity.components.set(light)
                 }
                 try? await Task.sleep(for: .milliseconds(80))
