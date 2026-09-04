@@ -393,7 +393,7 @@ class Mesh:
         i, n = indent, self.name
         if n.startswith("LampPool_"):
             return self._lamp_pool_material(indent)
-        emit = (4.20, 2.85, 1.25)
+        emit = (5.60, 3.80, 1.65)
         diff = (0.35, 0.28, 0.16)
         return f'''{i}def Material "{n}Mat"
 {i}{{
@@ -429,7 +429,7 @@ class Mesh:
 {i}    {{
 {i}        uniform token info:id = "UsdUVTexture"
 {i}        asset inputs:file = @textures/lamp_pool.png@
-{i}        float4 inputs:scale = (1.30, 0.88, 0.40, 1)
+{i}        float4 inputs:scale = (0.80, 0.54, 0.24, 1)
 {i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
 {i}        token inputs:wrapS = "clamp"
 {i}        token inputs:wrapT = "clamp"
@@ -1228,9 +1228,10 @@ def write_lamp_pool_texture():
             dx = (x + 0.5) / size * 2.0 - 1.0
             dy = (y + 0.5) / size * 2.0 - 1.0
             r = min(1.0, math.hypot(dx, dy))
-            # Squared falloff, eased to exactly zero at the rim so the disc has
-            # no visible edge against the dark ground.
-            v = (1.0 - r) ** 2
+            # Eased to exactly zero at the rim so the disc has no visible edge
+            # against the dark ground. The exponent sets how far the glow
+            # carries: squared dies close to the post, so keep it gentler.
+            v = (1.0 - r) ** 1.6
             rows.append(int(max(0.0, min(1.0, v)) * 255))
 
     def chunk(tag, data):
@@ -1285,7 +1286,7 @@ def village_lamps():
         # light it stands in for, and at forty metres it reads the same.
         pool = Mesh(f"LampPool_{index}", (1.0, 0.80, 0.45),
                     texture="lamp_pool", translate=(wx, y0 + 0.03, wz))
-        seg, rad = 24, 1.9
+        seg, rad = 28, 3.0
         for k in range(seg):
             a0 = 2.0 * math.pi * k / seg
             a1 = 2.0 * math.pi * (k + 1) / seg

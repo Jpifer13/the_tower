@@ -72,6 +72,13 @@ final class LightRig {
         var timeOfDay: TimeOfDay
     }
     private var appliedSky: SkyKey?
+    /// How many of the 25 street lamps get a real point light, nearest first.
+    private static let litLampRange = 16
+    /// Lumens. A street lamp is a dim thing; it only has to beat a moonless night.
+    private static let lampIntensity: Float = 34000
+    /// Metres. Keeps each lamp local to its own stretch of street.
+    private static let lampReach: Float = 17
+
     private var appliedLamps: Bool?
     /// The emissive materials the generator baked onto the lamp heads, kept so
     /// they can be put back at dusk after being swapped out for daylight.
@@ -312,12 +319,14 @@ final class LightRig {
         unlitHead.roughness = 0.35
         unlitHead.metallic = 0.0
 
-        var heads = 0, pools = 0
+        var heads: [Entity] = []
+        var pools = 0
         func walk(_ entity: Entity) {
             if entity.name.hasPrefix("LampPool_") {
                 entity.isEnabled = lit
                 pools += 1
             } else if entity.name.hasPrefix("Lamp_") {
+                heads.append(entity)
                 if var model = entity.components[ModelComponent.self] {
                     if lit {
                         if let saved = litLampMaterials[entity.name] {
@@ -331,12 +340,34 @@ final class LightRig {
                         entity.components.set(model)
                     }
                 }
-                heads += 1
             }
             for child in entity.children { walk(child) }
         }
         walk(scene)
-        log.info("street lamps \(lit ? "lit" : "out"): \(heads) heads, \(pools) pools")
+
+        // The glowing head and the pool underneath it are both fakes painted on
+        // the geometry: they put no light on anything else, so the house fronts
+        // beside a lamp stayed black. A real point light fixes that, but there
+        // are 25 lamps and point lights are not free, so only the nearest few
+        // get one -- the rest are too far to read as anything but their own glow.
+        // (Point lights cannot cast shadows in RealityKit, which outdoors at this
+        // distance costs nothing.)
+        let nearest = heads
+            .sorted { simd_length_squared($0.position(relativeTo: nil))
+                    < simd_length_squared($1.position(relativeTo: nil)) }
+        for (index, head) in nearest.enumerated() {
+            guard lit, index < Self.litLampRange else {
+                head.components.remove(PointLightComponent.self)
+                continue
+            }
+            head.components.set(PointLightComponent(
+                color: UIColor(red: 1.0, green: 0.78, blue: 0.46, alpha: 1.0),
+                intensity: Self.lampIntensity,
+                attenuationRadius: Self.lampReach))
+        }
+        let real = lit ? min(Self.litLampRange, nearest.count) : 0
+        let state = lit ? "lit" : "out"
+        log.info("street lamps \(state): \(nearest.count) heads, \(pools) pools, \(real) casting real light")
     }
 
     /// Sky images are loose files in the bundle, not asset-catalog entries, so
