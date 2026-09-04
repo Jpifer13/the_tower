@@ -70,5 +70,7 @@ python3 tools/generate_tower_shell.py          # writes build/town_placements.js
 python3 tools/generate_tower_shell.py          # now references the baked meshes
 ```
 
-The generator prints which mode it used. `village/merged/` is gitignored, so on a
-fresh clone the town renders unbatched until this is run.
+The generator prints which mode it used. `village/merged/` is gitignored while the
+generated `TowerShell.usda` that references it is not, so **a fresh clone must run
+this before building** or the town's houses resolve to nothing. Re-run it after any
+change to the village layout too, or the town keeps the old baked geometry.

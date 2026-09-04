@@ -43,6 +43,26 @@ for name in names:
     try:
         bpy.ops.import_scene.gltf(filepath=str(src))
 
+        # A roof is placed by its footprint centre, so its origin has to *be*
+        # that centre. Roof_RoundTiles_6x4 ships with its origin 2.36 m off,
+        # which hangs the roof clean off the back of every house using it.
+        # Normalise all of them rather than special-casing the one that is wrong.
+        #
+        # This has to happen *before* the rotation below: after it, y is the up
+        # axis, and recentring on y drops the roof through the roofline instead.
+        if name.startswith("Roof_RoundTiles"):
+            meshes = [o for o in bpy.data.objects if o.type == "MESH"]
+            pts = [o.matrix_world @ v.co for o in meshes for v in o.data.vertices]
+            if pts:
+                dx = (min(p.x for p in pts) + max(p.x for p in pts)) / 2.0
+                dy = (min(p.y for p in pts) + max(p.y for p in pts)) / 2.0
+                if abs(dx) > 0.01 or abs(dy) > 0.01:
+                    bpy.ops.object.select_all(action='SELECT')
+                    bpy.ops.transform.translate(value=(-dx, -dy, 0.0))
+                    bpy.ops.object.transform_apply(location=True, rotation=False,
+                                                   scale=False)
+                    print(f"  recentred {name} by {-dx:+.2f}, {-dy:+.2f}")
+
         # Blender is Z-up; the tower scene is Y-up. convert_orientation on the
         # exporter rewrites the upAxis metadata without rotating the points, which
         # leaves the two disagreeing. Rotate the geometry instead and bake it in:

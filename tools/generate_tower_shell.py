@@ -206,6 +206,8 @@ class Mesh:
             return self._fire_material(indent)
         if self.name.startswith("Orb_"):
             return self._orb_material(indent)
+        if self.name.startswith("WinGlow"):
+            return self._window_material(indent)
         if self.name.startswith("Lamp_") or self.name.startswith("LampPool_"):
             return self._lamp_material(indent)
         if self.texture:
@@ -377,6 +379,29 @@ class Mesh:
 {i}        color3f inputs:emissiveColor = (0.55, 1.45, 2.20)
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 0.35
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _window_material(self, indent):
+        """A lit pane. Unlit and emissive so it holds its warmth in a dark
+        village instead of going out with everything else."""
+        i, n = indent, self.name
+        # Rooms are not all lit the same. Three tiers is enough to stop the
+        # village reading as a grid of identical rectangles.
+        emit = {"A": (3.00, 1.85, 0.70),
+                "B": (2.05, 1.28, 0.52)}.get(n[-1], (1.30, 0.78, 0.30))
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.05, 0.03, 0.01)
+{i}        color3f inputs:emissiveColor = ({emit[0]}, {emit[1]}, {emit[2]})
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 1
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -875,6 +900,9 @@ WALL_HEIGHT_V   = 6.20     # m to the walkway
 WALL_THICK_V    = 1.30
 MERLON_H        = 1.10
 GATE_HALF_ANGLE = 7.0      # deg of wall left open for the road
+LIT_WINDOW      = 0.28     # share of upper windows with a light behind them
+SQUARE_HALF     = 10.0     # half-width of the market square at the crossroads
+SQUARE_LAMPS    = 8        # lamps ringing it
 STREET_W        = 7.0      # main street
 LANE_W          = 5.5      # cross lane
 
@@ -916,7 +944,11 @@ def village_layout():
     infill_roofs = [(4, 4), (4, 6), (6, 4)]
 
     def free(cx, cz, hx, hz):
-        """Reject overlaps, and keep every street corridor clear."""
+        """Reject overlaps, keep street corridors clear, and leave the square."""
+        # The two main streets already cross at the village origin; holding a
+        # box clear around it turns that crossing into a proper market square.
+        if abs(cx) < SQUARE_HALF + hx and abs(cz) < SQUARE_HALF + hz:
+            return False
         for axis, fixed, _ in STREETS:
             width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.5
             if axis == "x" and abs(cz - fixed) < width + hz:
@@ -1352,6 +1384,13 @@ def village_lamps():
     for z in range(-26, 30, 9):
         spots.append((-LANE_W / 2 - 0.9, float(z)))
 
+    # A ring around the market square. These are the closest lamps to the tower,
+    # so they are the ones that get real point lights rather than only a glow.
+    for k in range(SQUARE_LAMPS):
+        a = 2.0 * math.pi * k / SQUARE_LAMPS
+        spots.append((math.cos(a) * (SQUARE_HALF - 2.2),
+                      math.sin(a) * (SQUARE_HALF - 2.2)))
+
     for index, (vx, vz) in enumerate(spots):
         wx, wz = village_to_world(vx, vz)
         for lo, hi, half in ((0.0, 3.1, 0.07), (3.1, 3.35, 0.16)):
@@ -1397,6 +1436,7 @@ def village():
     """Houses assembled from the modular kit, lining the streets."""
     out = []
     placements = {}
+    glows = [Mesh(f"WinGlow_{k}", (1.0, 0.74, 0.38)) for k in ("A", "B", "C")]
     ground_y = -TOWER_ELEV
     counter = [0]
     rng = random.Random(11)
@@ -1421,6 +1461,29 @@ def village():
                  round(yaw + local_yaw, 2)])
             return ""
 
+        def lit_window(lx, ly, lz, nx, nz):
+            """A warm pane just proud of the wall, facing out of the house.
+
+            The outward direction comes from which wall this is, not from the
+            kit module's own axes -- the modules disagree about which way is
+            out, and a pane on the wrong side is simply invisible inside a
+            sealed house.
+            """
+            wx = cx + lx * cos_y + lz * sin_y
+            wz = cz - lx * sin_y + lz * cos_y
+            wnx = nx * cos_y + nz * sin_y
+            wnz = -nx * sin_y + nz * cos_y
+            tx, tz = wnz, -wnx
+            # Just clear of the wall. Further out and the pane visibly floats.
+            px, pz = wx + wnx * 0.21, wz + wnz * 0.21
+            cy = ground_y + ly + 1.92
+            g = glows[rng.randrange(len(glows))]
+            g.face([(px - tx * 0.50, cy - 0.62, pz - tz * 0.50),
+                    (px + tx * 0.50, cy - 0.62, pz + tz * 0.50),
+                    (px + tx * 0.50, cy + 0.62, pz + tz * 0.50),
+                    (px - tx * 0.50, cy + 0.62, pz - tz * 0.50)],
+                   (wnx, 0.0, wnz))
+
         brick = plot["brick"]
         wall = "Wall_UnevenBrick_Straight" if brick else "Wall_Plaster_Straight"
         if plot["timber"] and not brick:
@@ -1444,9 +1507,13 @@ def village():
                 out.append(place(front, lx, ly, -hd, 0.0))
                 if front == window:
                     out.append(place(shutter, lx, ly, -hd, 0.0))
+                    if rng.random() < LIT_WINDOW:
+                        lit_window(lx, ly, -hd, 0.0, -1.0)
                 out.append(place(window if storey else wall, lx, ly, hd, 180.0))
                 if storey:
                     out.append(place(shutter, lx, ly, hd, 180.0))
+                    if rng.random() < LIT_WINDOW:
+                        lit_window(lx, ly, hd, 0.0, 1.0)
             for i in range(deep):
                 lz = -hd + WALL_MODULE_W * (i + 0.5)
                 out.append(place(window if storey else wall, -hw, ly, lz, 90.0))
@@ -1454,6 +1521,10 @@ def village():
                 if storey:
                     out.append(place(shutter, -hw, ly, lz, 90.0))
                     out.append(place(shutter, hw, ly, lz, 270.0))
+                    if rng.random() < LIT_WINDOW:
+                        lit_window(-hw, ly, lz, -1.0, 0.0)
+                    if rng.random() < LIT_WINDOW:
+                        lit_window(hw, ly, lz, 1.0, 0.0)
             for sx, sz in ((-hw, -hd), (hw, -hd), (hw, hd), (-hw, hd)):
                 out.append(place(corner, sx, ly, sz, 0.0))
 
@@ -1488,7 +1559,10 @@ def village():
     how = (f"batched into {baked} baked meshes" if MERGED and baked
            else "UNBATCHED -- run tools/merge_town.py")
     print(f"  town: {total} module placements in {len(placements)} buildings, {how}")
-    return "".join(out) + emit_placements(placements)
+    lit = sum(len(g.pts) for g in glows) // 4
+    print(f"  windows lit: {lit}")
+    panes = "".join(g.material_usda() + g.usda() for g in glows if g.pts)
+    return "".join(out) + emit_placements(placements) + panes
 
 
 def emit_placements(placements):

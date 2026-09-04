@@ -73,7 +73,7 @@ final class LightRig {
     }
     private var appliedSky: SkyKey?
     /// How many of the 25 street lamps get a real point light, nearest first.
-    private static let litLampRange = 16
+    private static let litLampRange = 20
     /// Lumens. A street lamp is a dim thing; it only has to beat a moonless night.
     private static let lampIntensity: Float = 34000
     /// Metres. Keeps each lamp local to its own stretch of street.
@@ -303,7 +303,7 @@ final class LightRig {
 
     // MARK: - Sun
 
-    /// Street lamps burn only after dark.
+    /// Street lamps and lit windows burn only after dark.
     ///
     /// Their glow is baked into the generated USD, so without this they sit there
     /// lit at midday -- pools of lamplight on sunlit cobbles. The pools are simply
@@ -320,11 +320,16 @@ final class LightRig {
         unlitHead.metallic = 0.0
 
         var heads: [Entity] = []
-        var pools = 0
+        var pools = 0, panes = 0
         func walk(_ entity: Entity) {
             if entity.name.hasPrefix("LampPool_") {
                 entity.isEnabled = lit
                 pools += 1
+            } else if entity.name.hasPrefix("WinGlow") {
+                // Lit panes are emissive geometry like the lamps, so they burn
+                // through midday unless they are switched too.
+                entity.isEnabled = lit
+                panes += 1
             } else if entity.name.hasPrefix("Lamp_") {
                 heads.append(entity)
                 if var model = entity.components[ModelComponent.self] {
@@ -367,7 +372,7 @@ final class LightRig {
         }
         let real = lit ? min(Self.litLampRange, nearest.count) : 0
         let state = lit ? "lit" : "out"
-        log.info("street lamps \(state): \(nearest.count) heads, \(pools) pools, \(real) casting real light")
+        log.info("village lights \(state): \(nearest.count) lamps, \(pools) pools, \(panes) window groups, \(real) casting real light")
     }
 
     /// Sky images are loose files in the bundle, not asset-catalog entries, so
