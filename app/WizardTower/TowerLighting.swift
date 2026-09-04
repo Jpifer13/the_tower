@@ -64,6 +64,7 @@ final class LightRig {
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
     private var appliedSky: TimeOfDay?
+    private var appliedDome: TimeOfDay?
     private var appliedCandles: Bool?
 
     init() {
@@ -79,6 +80,7 @@ final class LightRig {
     func apply(_ state: LightingState, to scene: Entity) async {
         Self.stopGlassCastingShadows(in: scene)
         await applySky(state, to: scene)
+        await applySkyDome(state, to: scene)
         applySun(state)
         applyCandles(state, in: scene)
         applyFire(in: scene)
@@ -196,9 +198,7 @@ final class LightRig {
         // bundle file, so resolve the URL. Never fatal: a missing sky should dim
         // the room, not kill the app.
         let name = state.timeOfDay.skyImageName
-        guard let url = Bundle.main.url(forResource: name, withExtension: "jpg"),
-              let image = UIImage(contentsOfFile: url.path),
-              let cgImage = image.cgImage else {
+        guard let cgImage = Self.skyImage(name) else {
             log.error("no sky image named \(name).jpg in the bundle")
             return
         }
@@ -239,6 +239,51 @@ final class LightRig {
     }
 
     // MARK: - Sun
+
+    /// Sky images are loose files in the bundle, not asset-catalog entries, so
+    /// neither UIImage(named:) nor TextureResource(named:in:) can find them --
+    /// the latter fails with "Could not get asset catalog from supplied bundle".
+    /// Resolve the URL instead.
+    private static func skyImage(_ name: String) -> CGImage? {
+        guard let url = Bundle.main.url(forResource: name, withExtension: "jpg"),
+              let image = UIImage(contentsOfFile: url.path) else { return nil }
+        return image.cgImage
+    }
+
+    /// Retexture the visible skydome to match the hour.
+    ///
+    /// applySky above only sets the image-based light. The dome's own texture is
+    /// baked into TowerShell.usda by the generator, so without this the room
+    /// would relight for night while the view through the window stayed a bright
+    /// midday blue -- which is exactly what it did.
+    private func applySkyDome(_ state: LightingState, to scene: Entity) async {
+        guard appliedDome != state.timeOfDay else { return }
+        let name = state.timeOfDay.skyImageName
+        guard let sky = scene.findEntity(named: "Sky"),
+              var model = sky.components[ModelComponent.self] else {
+            log.error("no Sky entity with a mesh to retexture")
+            return
+        }
+        guard let cgImage = Self.skyImage(name) else {
+            log.error("no sky image named \(name).jpg in the bundle")
+            return
+        }
+        do {
+            let texture = try await TextureResource(
+                image: cgImage, options: .init(semantic: .color))
+            // Unlit, because the sky is a backdrop rather than a surface in the
+            // room: it must not darken when the room does.
+            var material = UnlitMaterial()
+            material.color = .init(texture: .init(texture))
+            model.materials = Array(repeating: material,
+                                    count: max(1, model.materials.count))
+            sky.components.set(model)
+            appliedDome = state.timeOfDay
+            log.info("sky dome -> \(name)")
+        } catch {
+            log.error("no sky texture \(name): \(error.localizedDescription)")
+        }
+    }
 
     private func applySun(_ state: LightingState) {
         var light = DirectionalLightComponent()

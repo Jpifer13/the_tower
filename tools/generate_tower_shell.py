@@ -31,7 +31,7 @@ SEGMENTS      = 96     # around the circle
 WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = 180.0  # directly opposite the desk: behind you seated, facing
                        # you the moment you turn round or stand up
-WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
+WINDOW_WIDTH  = 1.60   # m, along the arc
 WALL_THICK    = 0.35   # m, wall thickness = depth of the window reveal
 # Fireplace. Built rather than bought: the free Quaternius tier has no fireplace,
 # and a hearth set into a curved wall is architecture, like the shell.
@@ -206,6 +206,8 @@ class Mesh:
             return self._fire_material(indent)
         if self.name.startswith("Orb_"):
             return self._orb_material(indent)
+        if self.name.startswith("Lamp_") or self.name.startswith("LampPool_"):
+            return self._lamp_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -375,6 +377,71 @@ class Mesh:
 {i}        color3f inputs:emissiveColor = (0.55, 1.45, 2.20)
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 0.35
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _lamp_material(self, indent):
+        """Street lamps, warm against the blue of a moonlit night.
+
+        Emissive values run well above 1 so the heads still read as sources
+        rather than pale dots once the night exposure pulls the scene down. The
+        ground pools are the same colour an order of magnitude weaker — they are
+        what makes the street look lit rather than merely dotted with lamps.
+        """
+        i, n = indent, self.name
+        if n.startswith("LampPool_"):
+            return self._lamp_pool_material(indent)
+        emit = (4.20, 2.85, 1.25)
+        diff = (0.35, 0.28, 0.16)
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = ({diff[0]}, {diff[1]}, {diff[2]})
+{i}        color3f inputs:emissiveColor = ({emit[0]}, {emit[1]}, {emit[2]})
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.6
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _lamp_pool_material(self, indent):
+        """The lit ground under a lamp. Diffuse is black and the gradient drives
+        emission alone, so the disc fades to nothing at its rim instead of
+        showing an edge."""
+        i, n = indent, self.name
+        base = f"</TowerShell/{n}Mat"
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = {base}/Surface.outputs:surface>
+{i}    def Shader "stReader"
+{i}    {{
+{i}        uniform token info:id = "UsdPrimvarReader_float2"
+{i}        token inputs:varname = "st"
+{i}        float2 outputs:result
+{i}    }}
+{i}    def Shader "poolTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/lamp_pool.png@
+{i}        float4 inputs:scale = (1.30, 0.88, 0.40, 1)
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "clamp"
+{i}        token inputs:wrapT = "clamp"
+{i}        float3 outputs:rgb
+{i}    }}
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0, 0, 0)
+{i}        color3f inputs:emissiveColor.connect = {base}/poolTex.outputs:rgb>
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 1
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -1141,9 +1208,47 @@ def village_wall():
     return m.material_usda() + m.usda()
 
 
+def write_lamp_pool_texture():
+    """A soft radial gradient for the pool of light under each street lamp.
+
+    A flat disc of constant emissive colour reads as a patch of sand, not as
+    light. The falloff has to be in the texture. Written here rather than
+    committed as a binary, and with no third-party imaging dependency.
+    """
+    import binascii
+    import struct
+    import zlib
+
+    path = OUT.parent / "textures" / "lamp_pool.png"
+    size = 128
+    rows = bytearray()
+    for y in range(size):
+        rows.append(0)                       # PNG filter byte: none
+        for x in range(size):
+            dx = (x + 0.5) / size * 2.0 - 1.0
+            dy = (y + 0.5) / size * 2.0 - 1.0
+            r = min(1.0, math.hypot(dx, dy))
+            # Squared falloff, eased to exactly zero at the rim so the disc has
+            # no visible edge against the dark ground.
+            v = (1.0 - r) ** 2
+            rows.append(int(max(0.0, min(1.0, v)) * 255))
+
+    def chunk(tag, data):
+        return (struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", binascii.crc32(tag + data) & 0xFFFFFFFF))
+
+    png = (b"\x89PNG\r\n\x1a\n"
+           + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 0, 0, 0, 0))
+           + chunk(b"IDAT", zlib.compress(bytes(rows), 9))
+           + chunk(b"IEND", b""))
+    path.write_bytes(png)
+    return path
+
+
 def village_lamps():
     """Street lamps. Emissive only — thirty more point lights would cost far more
     than they are worth for something forty metres away behind glass."""
+    write_lamp_pool_texture()
     posts = Mesh("LampPosts", (0.16, 0.15, 0.14), texture="roof", tint=(0.30, 0.28, 0.26))
     glows = []
     y0 = -TOWER_ELEV
@@ -1175,6 +1280,23 @@ def village_lamps():
                     translate=(wx, y0 + 3.32, wz))
         sphere(head, (0.0, 0.0, 0.0), 0.15, 8, 6)
         glows.append(head.material_usda() + head.usda())
+
+        # A pool of light on the cobbles under each lamp. Cheaper than the point
+        # light it stands in for, and at forty metres it reads the same.
+        pool = Mesh(f"LampPool_{index}", (1.0, 0.80, 0.45),
+                    texture="lamp_pool", translate=(wx, y0 + 0.03, wz))
+        seg, rad = 24, 1.9
+        for k in range(seg):
+            a0 = 2.0 * math.pi * k / seg
+            a1 = 2.0 * math.pi * (k + 1) / seg
+            c0, s0 = math.cos(a0), math.sin(a0)
+            c1, s1 = math.cos(a1), math.sin(a1)
+            pool.face([(0.0, 0.0, 0.0), (c0 * rad, 0.0, s0 * rad),
+                       (c1 * rad, 0.0, s1 * rad)],
+                      (0.0, 1.0, 0.0),
+                      [(0.5, 0.5), (0.5 + c0 * 0.5, 0.5 + s0 * 0.5),
+                       (0.5 + c1 * 0.5, 0.5 + s1 * 0.5)])
+        glows.append(pool.material_usda() + pool.usda())
     return posts.material_usda() + posts.usda() + "".join(glows)
 
 

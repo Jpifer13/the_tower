@@ -48,7 +48,7 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
         switch self {
         case .day:    -2.6
         case .sunset: -3.6
-        case .night:  -5.4
+        case .night:  -4.5
         }
     }
 
@@ -61,7 +61,7 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
         switch self {
         case .day:    0
         case .sunset: 90
-        case .night:  120
+        case .night:  420
         }
     }
 }
