@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 tools/*)",
+      "Bash(xcodebuild build:*)",
+      "Bash(xcrun simctl:*)",
+      "Bash(usdrecord:*)",
+      "Bash(usdcat:*)",
+      "Bash(sips:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push)"
+    ]
+  }
+}
