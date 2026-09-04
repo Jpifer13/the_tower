@@ -86,6 +86,17 @@ needs `DirectionalLightComponent.Shadow`, and the default projection only reache
 shadows. `SpotLightComponent.Shadow` does exist, so anything that needs to throw
 shadows has to be a spot light.
 
+## 8. Single-sided geometry casts no shadow
+
+Back-face culling applies to the shadow map too, so a surface only blocks light
+from the side its faces point at. The conical roof was a single surface facing
+into the room: from the sun's side it was back-facing, culled, and sunlight came
+straight through the roof.
+
+Anything that should block light needs a surface facing the light — the roof got
+an outer skin, exactly as the wall did. Worth checking whenever something is lit
+from a direction it should not be.
+
 ## The pattern worth remembering
 
 Every bug here looked like it had been fixed. An edit that did not apply, a flag

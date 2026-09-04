@@ -30,6 +30,8 @@ WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = -55.0  # mirrored, to your left
 WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
 WALL_THICK    = 0.35   # m, wall thickness = depth of the window reveal
+ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
+                       # invisible from outside and casts no shadow.
 
 # Skydome — what you see through the window until real exterior geometry exists.
 SKY_RADIUS    = 140.0
@@ -377,6 +379,19 @@ def build():
         roof.face([p(a, WALL_HEIGHT), p(b, WALL_HEIGHT), (0.0, APEX_HEIGHT, -SEAT_Z)],
                   (-math.sin(t) * 0.5, -0.5, math.cos(t) * 0.5),
                   [(ua, 0.0), (ub, 0.0), ((ua + ub) / 2.0, slope / TILE)])
+
+        # Outer skin of the cone. The inner surface faces into the room, so from
+        # the sun's side it is back-facing and gets culled out of the shadow map —
+        # the roof lit the room straight through itself.
+        ro = R + WALL_THICK
+        oa0 = (ro * math.sin(math.radians(a)), WALL_HEIGHT,
+               -ro * math.cos(math.radians(a)) - SEAT_Z)
+        ob0 = (ro * math.sin(math.radians(b)), WALL_HEIGHT,
+               -ro * math.cos(math.radians(b)) - SEAT_Z)
+        oapex = (0.0, APEX_HEIGHT + ROOF_THICK, -SEAT_Z)
+        roof.face([ob0, oa0, oapex],
+                  (math.sin(t) * 0.5, 0.5, -math.cos(t) * 0.5),
+                  [(ub, 0.0), (ua, 0.0), ((ua + ub) / 2.0, slope / TILE)])
 
     # Window reveal — the faces you see when you lean into the opening. Design doc
     # calls this the one place worth spending detail, since it's read at ~30 cm.
