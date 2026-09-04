@@ -225,3 +225,20 @@ screen, because the runtime copy wins — and it silently kept the old bright sk
 
 `convert_skies.py` now writes both, in a `DESTS` list, rather than leaving it to
 whoever runs it next to remember.
+
+## 16. A pixel of an equirectangular sky is a *lot* of sky
+
+The first procedural night sky had stars the size of the moon, and it was not a
+bug in the star code — it was resolution. An equirectangular map 1024 pixels wide
+covers 360 degrees, so one pixel subtends 0.35 degrees on the dome. The moon
+subtends about 0.5. Single-pixel stars were therefore very nearly moon-sized, and
+the texture sampler's bilinear filter smeared each one into a soft blob on top.
+
+Anything that should read as a *point* on a sky dome has to be reasoned about in
+degrees-per-pixel, not pixels. 2048 wide halves it to 0.18 degrees, and dimming
+the stars gives the filter less to smear. The gradient itself would have been
+fine at a quarter of that resolution — the stars set the requirement.
+
+The same arithmetic is why the sun disc uses an angular threshold on the angle to
+the sun (`gamma < 0.010 rad`) rather than any pixel measure: it stays the right
+apparent size whatever the texture resolution.

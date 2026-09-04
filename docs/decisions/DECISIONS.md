@@ -142,3 +142,41 @@ textures to 1K.
   prints which mode it used, so a missing bake degrades rather than breaks.
 - **Re-run `tools/merge_town.py` after any change to the village layout**, or the
   town silently keeps the old baked geometry.
+
+---
+
+## 2026-09-04 — Compute the sky instead of photographing it
+
+**Context:** The sky was three HDRI-derived JPEGs, one each for day, sunset and night.
+
+**Problem:** `SolarPosition` already works out exactly where the sun is from the date,
+the hour and the latitude, and the directional light is aimed with it. A photograph
+cannot follow that — its sun is baked in wherever it was when the picture was taken.
+So the sun you saw through the window and the sun the room was lit by disagreed, and
+there were only three of them to cut between, with a visible snap at each boundary.
+The photographs also brought their own landscape, so the terrain past the village
+changed scene at dusk.
+
+**Decision:** Generate the sky from the same sun vector the lights use — `SkyModel`.
+Daylight is the Preetham analytic model (SIGGRAPH 1999): a Perez luminance
+distribution fitted to turbidity, evaluated in CIE xyY and converted to sRGB. Below
+the horizon it crosses into its own night sky with stars and a moon. Clouds are fBm
+on a projected shell.
+
+**Why this is better here, not just different:**
+- The sun is in the sky where the light comes from, by construction.
+- It is continuous. The live clock now has a sky that actually moves with it.
+- Sunset is warm, which the photograph never was — its orange was in a horizon band
+  that the village hid.
+- One generated image feeds both the dome and the image-based light, so what the room
+  is lit by is by definition what is out of the window.
+- No horizon that changes location at dusk, and no auto-exposure to get wrong.
+
+**Cost:** ~150 ms per rebuild at 2048x1024, off the main actor and cached on the sun
+position rounded to a degree. No photographic cloud detail — these clouds are
+procedural and read as a fair-weather deck, not as weather.
+
+**Consequences:**
+- The HDRIs and `tools/convert_skies.py` stay as a fallback behind
+  `AppModel.proceduralSky`, which is worth keeping for comparison.
+- `TimeOfDay.skyImageName` is now only used by that fallback path.

@@ -22,6 +22,10 @@ final class AppModel {
     /// Follow the real sun, or pin the room to one look.
     var lightingMode: LightingMode = .liveClock
 
+    /// The sky is generated from the sun's real position rather than loaded from
+    /// a photograph. Set false to fall back to the HDRI images in Skies/.
+    var proceduralSky = true
+
     /// Where the tower stands and which way the window faces.
     var place = TowerPlace()
 
@@ -37,7 +41,8 @@ final class AppModel {
                 timeOfDay: solar.impliedTimeOfDay,
                 sunElevation: solar.elevation,
                 sunBearingInRoom: place.bearingInRoom(compass: solar.azimuth),
-                daylight: solar.daylightFraction)
+                daylight: solar.daylightFraction,
+                proceduralSky: proceduralSky)
 
         case .manual(let time):
             // A plausible sun for each look, since there is no clock to ask.
@@ -50,7 +55,8 @@ final class AppModel {
                 timeOfDay: time,
                 sunElevation: elevation,
                 sunBearingInRoom: place.bearingInRoom(compass: place.windowBearing),
-                daylight: time == .day ? 1.0 : (time == .sunset ? 0.35 : 0.0))
+                daylight: time == .day ? 1.0 : (time == .sunset ? 0.35 : 0.0),
+                proceduralSky: proceduralSky)
         }
     }
     /// Full, not mixed. Mixed lets you roam past the 1.5 m safety boundary, but

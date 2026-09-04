@@ -14,6 +14,8 @@ struct LightingState: Equatable {
     var sunBearingInRoom: Double
     /// 0 below the horizon, 1 in full day.
     var daylight: Double
+    /// Compute the sky rather than photograph it. See `SkyModel`.
+    var proceduralSky: Bool = true
 }
 
 /// The room's lights, held so they can be re-aimed as the day moves rather than
@@ -63,8 +65,13 @@ final class LightRig {
     private var flames: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
-    private var appliedSky: TimeOfDay?
-    private var appliedDome: TimeOfDay?
+    private struct SkyKey: Equatable {
+        var elevation: Int
+        var azimuth: Int
+        var procedural: Bool
+        var timeOfDay: TimeOfDay
+    }
+    private var appliedSky: SkyKey?
     private var appliedLamps: Bool?
     /// The emissive materials the generator baked onto the lamp heads, kept so
     /// they can be put back at dusk after being swapped out for daylight.
@@ -84,7 +91,6 @@ final class LightRig {
     func apply(_ state: LightingState, to scene: Entity) async {
         Self.stopGlassCastingShadows(in: scene)
         await applySky(state, to: scene)
-        await applySkyDome(state, to: scene)
         applySun(state)
         applyCandles(state, in: scene)
         applyFire(in: scene)
@@ -195,18 +201,63 @@ final class LightRig {
 
     // MARK: - Window light
 
+    /// Build the sky once, and use it for both the dome and the light.
+    ///
+    /// One image drives what you see out of the window *and* what the room is lit
+    /// by, so the two cannot disagree -- which they did while the sky was a
+    /// photograph, since its sun was wherever the photographer stood and the
+    /// light came from wherever SolarPosition said.
     private func applySky(_ state: LightingState, to scene: Entity) async {
-        guard appliedSky != state.timeOfDay else { return }
-        appliedSky = state.timeOfDay
+        // The procedural sky is continuous, so keying the cache on time-of-day is
+        // not enough; quantise the sun instead. A degree is far finer than the eye
+        // follows and still collapses a whole minute of drift to one rebuild.
+        let key = SkyKey(elevation: Int((state.sunElevation).rounded()),
+                         azimuth: Int((state.sunBearingInRoom).rounded()),
+                         procedural: state.proceduralSky,
+                         timeOfDay: state.timeOfDay)
+        guard appliedSky != key else { return }
 
-        // UIImage(named:) is an asset-catalog lookup and will not find a loose
-        // bundle file, so resolve the URL. Never fatal: a missing sky should dim
-        // the room, not kill the app.
-        let name = state.timeOfDay.skyImageName
-        guard let cgImage = Self.skyImage(name) else {
-            log.error("no sky image named \(name).jpg in the bundle")
+        let name: String
+        let cgImage: CGImage?
+        if state.proceduralSky {
+            name = "procedural"
+            let sky = SkyModel(sunElevation: Float(state.sunElevation),
+                               sunAzimuth: Float(state.sunBearingInRoom))
+            // Off the main actor: this is a few tens of milliseconds of pixels.
+            cgImage = await Task.detached(priority: .userInitiated) {
+                sky.image()
+            }.value
+        } else {
+            name = state.timeOfDay.skyImageName
+            cgImage = Self.skyImage(name)
+        }
+        guard let cgImage else {
+            log.error("no sky image for \(name)")
             return
         }
+        appliedSky = key
+
+        // The dome is what you actually look at.
+        if let dome = scene.findEntity(named: "Sky"),
+           var model = dome.components[ModelComponent.self] {
+            do {
+                let texture = try await TextureResource(
+                    image: cgImage, options: .init(semantic: .color))
+                // Unlit: the sky is a backdrop, not a surface in the room, so it
+                // must not darken when the room does.
+                var material = UnlitMaterial()
+                material.color = .init(texture: .init(texture))
+                model.materials = Array(repeating: material,
+                                        count: max(1, model.materials.count))
+                dome.components.set(model)
+            } catch {
+                log.error("sky dome texture failed: \(error.localizedDescription)")
+            }
+        } else {
+            log.error("no Sky entity with a mesh to retexture")
+        }
+
+        // ...and the same image lights the room.
         do {
             let resource = try await EnvironmentResource
                 .generate(fromEquirectangular: cgImage, withName: name)
@@ -222,7 +273,7 @@ final class LightRig {
             // The receiver is not inherited: setting it on the root alone leaves
             // every child lit by the system's own environment light instead.
             let count = Self.attachReceiver(to: scene, light: entity)
-            log.info("sky \(state.timeOfDay.rawValue), \(count) receivers")
+            log.info("sky \(name) sun \(key.elevation)/\(key.azimuth), \(count) receivers")
         } catch {
             log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
         }
@@ -298,40 +349,6 @@ final class LightRig {
         return image.cgImage
     }
 
-    /// Retexture the visible skydome to match the hour.
-    ///
-    /// applySky above only sets the image-based light. The dome's own texture is
-    /// baked into TowerShell.usda by the generator, so without this the room
-    /// would relight for night while the view through the window stayed a bright
-    /// midday blue -- which is exactly what it did.
-    private func applySkyDome(_ state: LightingState, to scene: Entity) async {
-        guard appliedDome != state.timeOfDay else { return }
-        let name = state.timeOfDay.skyImageName
-        guard let sky = scene.findEntity(named: "Sky"),
-              var model = sky.components[ModelComponent.self] else {
-            log.error("no Sky entity with a mesh to retexture")
-            return
-        }
-        guard let cgImage = Self.skyImage(name) else {
-            log.error("no sky image named \(name).jpg in the bundle")
-            return
-        }
-        do {
-            let texture = try await TextureResource(
-                image: cgImage, options: .init(semantic: .color))
-            // Unlit, because the sky is a backdrop rather than a surface in the
-            // room: it must not darken when the room does.
-            var material = UnlitMaterial()
-            material.color = .init(texture: .init(texture))
-            model.materials = Array(repeating: material,
-                                    count: max(1, model.materials.count))
-            sky.components.set(model)
-            appliedDome = state.timeOfDay
-            log.info("sky dome -> \(name)")
-        } catch {
-            log.error("no sky texture \(name): \(error.localizedDescription)")
-        }
-    }
 
     private func applySun(_ state: LightingState) {
         var light = DirectionalLightComponent()
