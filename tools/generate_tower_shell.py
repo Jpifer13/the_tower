@@ -55,11 +55,12 @@ ORB_SEGS      = 20
 GLASS_OPACITY = 0.14   # how much the pane tints the view
 # 0 leaves the pane as clear as it was; 1 is heavy frosting that keeps only
 # colour and glow. TOWER_GLASS_FROST overrides it.
-GLASS_FROST   = float(os.environ.get("TOWER_GLASS_FROST", "0.62"))
+GLASS_FROST   = float(os.environ.get("TOWER_GLASS_FROST", "0.92"))
 # Diamond leading. Frosting alone cannot hide detail -- RealityKit does not
 # refract, so a blended pane lowers contrast but leaves every edge sharp. Lead
 # cames are geometry, and geometry actually occludes.
 GLASS_LEAD    = os.environ.get("TOWER_GLASS_LEAD", "1") == "1"
+GLASS_GLOW    = float(os.environ.get("TOWER_GLASS_GLOW", "0.55"))
 LEAD_SPACING  = 0.17   # m between cames, measured along the pane
 LEAD_WIDTH    = 0.018  # m
 ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
@@ -333,6 +334,12 @@ class Mesh:
         # between, so map frost across the whole span and default near the top.
         opacity = GLASS_OPACITY + (0.88 - GLASS_OPACITY) * GLASS_FROST
         rough = 0.06 + 0.55 * GLASS_FROST
+        # Real frosted glass is *bright*: it scatters daylight and glows. A
+        # diffuse-only pane is lit by the room, which is dim, so raising opacity
+        # blends the view toward dark grey -- smoked glass rather than frosted.
+        # The emission is what makes it read as milky instead of sooty. Swift
+        # scales it with the hour so night keeps its village lights.
+        glow = GLASS_GLOW * GLASS_FROST
         return f'''{i}def Material "{n}Mat"
 {i}{{
 {i}    token outputs:surface.connect = {base}/Surface.outputs:surface>
@@ -353,10 +360,22 @@ class Mesh:
 {i}        token inputs:wrapT = "clamp"
 {i}        float3 outputs:rgb
 {i}    }}
+{i}    def Shader "glowTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/glass_frost.png@
+{i}        float4 inputs:scale = ({glow:.3f}, {glow * 1.02:.3f}, {glow * 1.06:.3f}, 1)
+{i}        float4 inputs:bias = (0, 0, 0, 0)
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "clamp"
+{i}        token inputs:wrapT = "clamp"
+{i}        float3 outputs:rgb
+{i}    }}
 {i}    def Shader "Surface"
 {i}    {{
 {i}        uniform token info:id = "UsdPreviewSurface"
 {i}        color3f inputs:diffuseColor.connect = {base}/frostTex.outputs:rgb>
+{i}        color3f inputs:emissiveColor.connect = {base}/glowTex.outputs:rgb>
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = {rough:.2f}
 {i}        float inputs:opacity = {opacity:.3f}

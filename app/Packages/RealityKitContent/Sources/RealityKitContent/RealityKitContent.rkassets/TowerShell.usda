@@ -304,13 +304,25 @@ def Xform "TowerShell"
             token inputs:wrapT = "clamp"
             float3 outputs:rgb
         }
+        def Shader "glowTex"
+        {
+            uniform token info:id = "UsdUVTexture"
+            asset inputs:file = @textures/glass_frost.png@
+            float4 inputs:scale = (0.506, 0.516, 0.536, 1)
+            float4 inputs:bias = (0, 0, 0, 0)
+            float2 inputs:st.connect = </TowerShell/GlassMat/stReader.outputs:result>
+            token inputs:wrapS = "clamp"
+            token inputs:wrapT = "clamp"
+            float3 outputs:rgb
+        }
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
             color3f inputs:diffuseColor.connect = </TowerShell/GlassMat/frostTex.outputs:rgb>
+            color3f inputs:emissiveColor.connect = </TowerShell/GlassMat/glowTex.outputs:rgb>
             float inputs:metallic = 0
-            float inputs:roughness = 0.40
-            float inputs:opacity = 0.599
+            float inputs:roughness = 0.57
+            float inputs:opacity = 0.821
             float inputs:ior = 1.5
             token outputs:surface
         }

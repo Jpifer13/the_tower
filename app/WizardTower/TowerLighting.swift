@@ -97,6 +97,7 @@ final class LightRig {
 
     func apply(_ state: LightingState, to scene: Entity) async {
         Self.stopGlassCastingShadows(in: scene)
+        Self.frostGlass(state, in: scene)
         await applySky(state, to: scene)
         applySun(state)
         applyCandles(state, in: scene)
@@ -288,6 +289,29 @@ final class LightRig {
 
     /// The window pane must not cast, or it blocks the very light it is there to
     /// let through. Transparency does not affect shadow casting on its own.
+    /// Let the frosted pane glow only while there is daylight behind it.
+    ///
+    /// Frosted glass reads as milky because it scatters the light striking it.
+    /// The generator gives the pane a mottled emissive to fake that, but emission
+    /// is constant in the USD, so at night the window became a grey lamp and
+    /// washed the lit village out entirely. Scaling the intensity with the sun
+    /// keeps the daytime veil and hands the night back its lights.
+    private static func frostGlass(_ state: LightingState, in entity: Entity) {
+        if entity.name.localizedCaseInsensitiveContains("glass"),
+           var model = entity.components[ModelComponent.self] {
+            let lit = Float(max(0.0, min(1.0, state.daylight)))
+            model.materials = model.materials.map { material in
+                guard var pbr = material as? PhysicallyBasedMaterial else { return material }
+                // Scale the emissive the USD authored rather than replacing the
+                // material, so the pane keeps its mottling.
+                pbr.emissiveIntensity = lit
+                return pbr
+            }
+            entity.components.set(model)
+        }
+        entity.children.forEach { frostGlass(state, in: $0) }
+    }
+
     private static func stopGlassCastingShadows(in entity: Entity) {
         if entity.name.localizedCaseInsensitiveContains("glass") {
             entity.components.set(DynamicLightShadowComponent(castsShadow: false))

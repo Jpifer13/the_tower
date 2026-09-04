@@ -277,3 +277,28 @@ Beware of judging it from the wrong distance: the first leading looked like a
 chain-link fence because the test camera sat 0.7 m from the pane. From the seat,
 3.6 m back, the same lattice reads as a window. Evaluate a window from where the
 chair is.
+
+
+## 19. Frosted glass has to be *lit*, not just opaque
+
+Note 18 ended with lead cames, and they were not enough: between the cames the
+village was still perfectly legible. Raising the pane's opacity did not fix it
+either -- it only made the view darker, because a diffuse-only pane is lit by the
+room, the room is dim, and blending toward a dark grey gives smoked glass rather
+than frosted.
+
+What makes real frosted glass milky is that it *scatters the light behind it* and
+therefore glows. Giving the pane a mottled `emissiveColor` finally did it: at
+last the village became shapes and colour with no detail.
+
+Emission is constant in the USD, though, so at night the window turned into a
+grey lamp and washed the lit village out completely -- worse than no frosting at
+all. `LightRig.frostGlass` scales `PhysicallyBasedMaterial.emissiveIntensity`
+with `state.daylight`, which keeps the mottling the USD authored instead of
+replacing the material.
+
+Also worth recording: the contrast metric that guided notes 17 and 18 *inverted*
+once the pane glowed. Contrast rose from 10 to 38, because the black lead cames
+against a now-bright pane dominate the measurement. The number had stopped
+describing the thing it was chosen to describe. A metric is only valid while the
+thing it stands in for has not changed.
