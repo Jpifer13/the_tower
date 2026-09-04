@@ -672,8 +672,15 @@ def candles():
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }}
 ''')
+        # The prop is placed with a yaw, so its candles turn with it. The offsets
+        # have to turn too, or the flames land between the candles rather than on
+        # them — invisible on anything with yaw 0, obvious on the stands at 25 deg.
+        ry = math.radians(yaw)
+        cos_y, sin_y = math.cos(ry), math.sin(ry)
         for wick, (dx, dy, dz) in enumerate(offsets):
-            centre = (x + dx, y + dy, z + dz)
+            rx = dx * cos_y + dz * sin_y
+            rz = -dx * sin_y + dz * cos_y
+            centre = (x + rx, y + dy, z + rz)
             # Built around the local origin with the position on the prim, so the
             # light Swift attaches lands on the flame rather than at (0, 0, 0).
             # Named by candle, then wick: Swift gives each candle one light rather

@@ -1023,7 +1023,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_0Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-2.9000, 1.3100, 1.7120)
+        double3 xformOp:translate = (-2.7681, 1.3100, 1.6828)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_1Mat"
@@ -1053,7 +1053,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_1Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-2.6790, 1.3100, 1.6210)
+        double3 xformOp:translate = (-2.6063, 1.3100, 1.5069)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_2Mat"
@@ -1083,7 +1083,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_2Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-2.5880, 1.3100, 1.4000)
+        double3 xformOp:translate = (-2.6172, 1.3100, 1.2681)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_3Mat"
@@ -1113,7 +1113,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_3Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-2.6790, 1.3100, 1.1790)
+        double3 xformOp:translate = (-2.7931, 1.3100, 1.1063)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_4Mat"
@@ -1143,7 +1143,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_4Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-2.9000, 1.3100, 1.0880)
+        double3 xformOp:translate = (-3.0319, 1.3100, 1.1172)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_5Mat"
@@ -1173,7 +1173,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_5Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-3.1210, 1.3100, 1.1790)
+        double3 xformOp:translate = (-3.1937, 1.3100, 1.2931)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_6Mat"
@@ -1203,7 +1203,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_6Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-3.2120, 1.3100, 1.4000)
+        double3 xformOp:translate = (-3.1828, 1.3100, 1.5319)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_4_7Mat"
@@ -1233,7 +1233,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_4_7Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (-3.1210, 1.3100, 1.6210)
+        double3 xformOp:translate = (-3.0069, 1.3100, 1.6937)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def "CandleStick_Stand_14" (
@@ -1271,7 +1271,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_0Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.7000, 1.3100, 4.6120)
+        double3 xformOp:translate = (2.5933, 1.3100, 4.5932)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_1Mat"
@@ -1301,7 +1301,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_1Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.9210, 1.3100, 4.5210)
+        double3 xformOp:translate = (2.8321, 1.3100, 4.5833)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_2Mat"
@@ -1331,7 +1331,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_2Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (3.0120, 1.3100, 4.3000)
+        double3 xformOp:translate = (2.9932, 1.3100, 4.4067)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_3Mat"
@@ -1361,7 +1361,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_3Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.9210, 1.3100, 4.0790)
+        double3 xformOp:translate = (2.9833, 1.3100, 4.1679)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_4Mat"
@@ -1391,7 +1391,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_4Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.7000, 1.3100, 3.9880)
+        double3 xformOp:translate = (2.8067, 1.3100, 4.0068)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_5Mat"
@@ -1421,7 +1421,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_5Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.4790, 1.3100, 4.0790)
+        double3 xformOp:translate = (2.5679, 1.3100, 4.0167)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_6Mat"
@@ -1451,7 +1451,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_6Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.3880, 1.3100, 4.3000)
+        double3 xformOp:translate = (2.4068, 1.3100, 4.1933)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def Material "Flame_5_7Mat"
@@ -1481,7 +1481,7 @@ def Xform "TowerShell"
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
         rel material:binding = </TowerShell/Flame_5_7Mat>
         uniform token subdivisionScheme = "none"
-        double3 xformOp:translate = (2.4790, 1.3100, 4.5210)
+        double3 xformOp:translate = (2.4167, 1.3100, 4.4321)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
     def "Chandelier_22" (
