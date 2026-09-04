@@ -25,6 +25,7 @@ import sys
 from pathlib import Path
 
 import bpy
+import mathutils
 
 ROOT = Path.cwd()
 SRC = ROOT / "assets/source/Medieval Village MegaKit[Standard]/glTF"
@@ -63,7 +64,7 @@ for group in groups:
     cache = {}
     built = []
     try:
-        for name, x, y, z, yaw in rows:
+        for name, x, y, z, rx, ry, rz in rows:
             if name not in cache:
                 cache[name] = import_module(name)
                 for o in cache[name]:
@@ -74,11 +75,18 @@ for group in groups:
                 dup.hide_set(False)
                 bpy.context.collection.objects.link(dup)
                 # Stay in Blender's native Z-up while assembling: the scene's
-                # +Y maps to Blender +Z, so the placement yaw about scene Y is
-                # a yaw about Blender Z, and (x, y, z) lands at (x, -z, y).
-                # The single Z-up -> Y-up bake happens once, after the join.
+                # +Y maps to Blender +Z and its +Z to Blender -Y, so (x, y, z)
+                # lands at (x, -z, y). The single Z-up -> Y-up bake happens once,
+                # after the join.
+                #
+                # The placement is a USD rotateXYZ, which is Rz*Ry*Rx applied in
+                # scene axes. Rebuild it on the corresponding Blender axes rather
+                # than trying to reorder the euler by hand.
+                rot = (mathutils.Matrix.Rotation(math.radians(-rz), 4, "Y")
+                       @ mathutils.Matrix.Rotation(math.radians(ry), 4, "Z")
+                       @ mathutils.Matrix.Rotation(math.radians(rx), 4, "X"))
                 dup.rotation_mode = "XYZ"
-                dup.rotation_euler = (0.0, 0.0, math.radians(yaw))
+                dup.rotation_euler = rot.to_euler("XYZ")
                 dup.location = (x, -z, y)
                 built.append(dup)
 

@@ -74,3 +74,38 @@ The generator prints which mode it used. `village/merged/` is gitignored while t
 generated `TowerShell.usda` that references it is not, so **a fresh clone must run
 this before building** or the town's houses resolve to nothing. Re-run it after any
 change to the village layout too, or the town keeps the old baked geometry.
+
+## `edit_house.py`
+
+Rearrange one house by hand in Reality Composer Pro.
+
+The town ships as one baked mesh per building, so there are no pieces inside
+`village/merged/House07.usdc` to move — the modules only exist as placement data.
+This writes that data back out as a normal USD scene of individual module
+references, and reads your edits back in.
+
+```
+python3 tools/edit_house.py list                 # which buildings exist
+python3 tools/edit_house.py export House07       # -> app/house-edits/House07.usda
+#   open that file in Reality Composer Pro, move the pieces, save
+python3 tools/edit_house.py import House07       # -> assets/house_edits/House07.json
+python3 tools/generate_tower_shell.py
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+    --python tools/merge_town.py
+```
+
+The override in `assets/house_edits/` wins over the procedural layout on every
+regeneration, and is tracked in git. Delete it to go back to the generated house.
+
+Notes:
+- Duplicating a piece in RCP works; the importer reads anything that references a
+  village module, whatever the prim is called.
+- Leave the root Xform's translate alone unless you mean to move the whole
+  building — it is where the house stands in the town.
+- Scaling a piece is dropped: the placement format carries position and rotation
+  only, and the importer warns when it sees a scale.
+- Overrides are keyed by building name, and the names come from the procedural
+  layout order. Changing the village layout constants can therefore point an old
+  edit at a different building.
+- The lit window panes are still placed procedurally, so moving a wall a long way
+  can leave its pane behind.

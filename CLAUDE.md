@@ -72,6 +72,15 @@ xcrun simctl spawn "Apple Vision Pro" log show --info --last 2m \
 
 # Offline render from arbitrary viewpoints (the sim camera cannot be aimed)
 usdrecord --camera RoomWide --imageWidth 1000 tools/preview_cameras.usda out.png
+
+# Re-bake the town after any change to the village layout (or on a fresh clone,
+# or the houses resolve to nothing)
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+  --python tools/merge_town.py
+
+# Rearrange one house by hand in Reality Composer Pro
+python3 tools/edit_house.py export House07     # then edit + save in RCP
+python3 tools/edit_house.py import House07     # then regenerate, then re-bake
 ```
 
 **Blockout aids** (1.7 m figure, walkable envelope, fireplace marker) are off by

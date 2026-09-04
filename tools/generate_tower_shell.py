@@ -1456,9 +1456,12 @@ def village():
             counter[0] += 1
             wx = cx + lx * cos_y + lz * sin_y
             wz = cz - lx * sin_y + lz * cos_y
+            # Full XYZ euler, not just yaw: tools/edit_house.py lets a house be
+            # rearranged in Reality Composer Pro, and nothing there stops you
+            # tilting a piece.
             placements.setdefault(group, []).append(
                 [name, round(wx, 4), round(ground_y + ly, 4), round(wz, 4),
-                 round(yaw + local_yaw, 2)])
+                 0.0, round(yaw + local_yaw, 2), 0.0])
             return ""
 
         def lit_window(lx, ly, lz, nx, nz):
@@ -1551,6 +1554,20 @@ def village():
             out.append(place("Prop_WoodenFence_Single", -hw - 0.6, 0.0,
                              rng.uniform(-hd, hd), 90.0))
 
+    # Hand edits win over the procedural layout. A house rearranged in Reality
+    # Composer Pro and imported with tools/edit_house.py lands here, and survives
+    # every regeneration until its override file is deleted.
+    edits = Path(__file__).parent.parent / "assets" / "house_edits"
+    applied = []
+    for edit in sorted(edits.glob("*.json")) if edits.exists() else []:
+        if edit.stem in placements:
+            placements[edit.stem] = json.loads(edit.read_text())
+            applied.append(edit.stem)
+        else:
+            print(f"  ! {edit.stem} has an edit but no such building; ignoring")
+    if applied:
+        print(f"  hand-edited: {', '.join(applied)}")
+
     with open(Path(__file__).parent.parent / "build" / "town_placements.json", "w") as fh:
         json.dump(placements, fh)
     total = sum(len(v) for v in placements.values())
@@ -1584,14 +1601,15 @@ def emit_placements(placements):
                        f'@village/merged/{group}.usdc@\n'
                        f'        )\n        {{\n        }}\n')
         else:
-            for i, (name, x, y, z, yaw) in enumerate(rows):
+            for i, (name, x, y, z, rx, ry, rz) in enumerate(rows):
                 out.append(f'        def "M{i}" (\n'
                            f'            prepend references = @village/{name}.usdc@\n'
                            f'        )\n'
                            f'        {{\n'
                            f'            double3 xformOp:translate = '
                            f'({x:.3f}, {y:.3f}, {z:.3f})\n'
-                           f'            float3 xformOp:rotateXYZ = (0, {yaw:.1f}, 0)\n'
+                           f'            float3 xformOp:rotateXYZ = '
+                           f'({rx:.2f}, {ry:.2f}, {rz:.2f})\n'
                            f'            uniform token[] xformOpOrder = '
                            f'["xformOp:translate", "xformOp:rotateXYZ"]\n'
                            f'        }}\n')
