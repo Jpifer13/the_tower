@@ -217,7 +217,7 @@ class Mesh:
 {i}    def Shader "Surface"
 {i}    {{
 {i}        uniform token info:id = "UsdPreviewSurface"
-{i}        color3f inputs:diffuseColor = (0, 0, 0)
+{i}        color3f inputs:diffuseColor.connect = {base}/skyTex.outputs:rgb>
 {i}        color3f inputs:emissiveColor.connect = {base}/skyTex.outputs:rgb>
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 1
@@ -437,10 +437,13 @@ def skydome():
             def uv(ph, th):
                 return (th / (2.0 * math.pi), 1.0 - ph / math.pi)
 
-            quad = [pt(ph0, th0), pt(ph0, th1), pt(ph1, th1), pt(ph1, th0)]
+            # Wound so the front faces point inward. Viewed from the middle, the
+            # other winding is back-facing and gets culled, which shows as the sky
+            # simply not being there rather than as anything obviously broken.
+            quad = [pt(ph1, th0), pt(ph1, th1), pt(ph0, th1), pt(ph0, th0)]
             # Normals point inward, since it's viewed from the middle.
             nrm = [tuple(-(c[k] - (cx, cy, cz)[k]) / SKY_RADIUS for k in range(3)) for c in quad]
-            m.face(quad, nrm, [uv(ph0, th0), uv(ph0, th1), uv(ph1, th1), uv(ph1, th0)])
+            m.face(quad, nrm, [uv(ph1, th0), uv(ph1, th1), uv(ph0, th1), uv(ph0, th0)])
     return m.material_usda() + m.usda()
 
 
