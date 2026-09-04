@@ -1,6 +1,6 @@
 # Progress Tracker
 
-Status: **Phase 1 — learning in progress** (hands-on RCP). **Phase 2 — design agreed.** Phase 3 unblocked.
+Status: **Phase 4 well underway** — room built, furnished and lit. Phase 1's RCP practice is still open, and hasn't blocked anything.
 
 **Direction (2026-09-03): this is a personal tool, not a product.** App Store is optional and deferred.
 Started: 2026-09-03
@@ -108,15 +108,23 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 - [ ] Seated viewpoint entity placed; reviewed from that POV in Simulator
 
 ### Week 2: Light it
-- [ ] HDRI image-based lighting set up
-- [ ] Warm point lights at candles + fireplace (2000–2700 K tints)
-- [ ] Directional/spot through window for sun/moon
+- [x] HDRI image-based lighting from the window sky
+- [x] Warm lights at every candle (7 candles, 30 flames) + the hearth
+- [x] Directional sun/moon through the window, **positioned from the real clock**
+- [x] Shadows: directional + spot (point lights cannot cast — a RealityKit limit)
+- [x] Time of day: day / sunset / night, live or manual, with a control panel
+- [x] `.full` immersion — `.mixed` cannot be lit, see the learning notes
 - [ ] Static lighting baked where possible
 
 ### Week 3: Atmosphere
-- [ ] Dust motes in window light; fireplace embers; (optional) night fireflies
+- [x] Fireplace built (chimney breast, recess, hearth) with a particle fire
+- [x] Candle flames: emissive geometry + flicker, one light per candle
+- [x] Orb on a pedestal — placeholder, cool light against the warm
+- [x] Glazed window
+- [ ] Dust motes in window light; (optional) night fireflies
 - [ ] Spatial audio at fireplace, window, room tone — falloffs tuned
 - [ ] Materials pass: stone roughness, candle emissives, glassy crystal ball
+- [ ] Replace box-and-gable neighbours with the Medieval Village kit (176 models, unused)
 
 ### Performance budget
 - [ ] Scene under ~500K triangles
