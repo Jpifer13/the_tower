@@ -1220,42 +1220,87 @@ def _build_village_layout():
     # hardest to hit. Sweeping a lattice instead finds them all in one pass, and
     # backland plots squared to the grid is what actually grew behind a medieval
     # street anyway.
+    # Infill. Street frontages alone leave the blocks hollow, and with six streets
+    # crossing, the corridor clearances eat most of the frontage at every
+    # intersection -- 34 houses on 680 m of street. The rest are backland plots.
+    #
+    # Random darts found 22 of these, and 29 when the attempts were tripled: the
+    # last gaps are the hardest to hit. A swept lattice finds them in one pass --
+    # and it must be swept in order, since shuffling makes it behave exactly like
+    # the darts it replaced.
+    #
+    # Which lattice, though, matters as much as the sweep: shifting its origin by
+    # half a metre changed the yield by ten per cent, because every plot lands in
+    # a different place relative to the streets already built. So try a few
+    # origins and keep whichever fits the most houses.
     step = 1.0
-    limit = WALL_RADIUS - 3.5
-    cells = []
-    g = -limit
-    while g < limit:
-        h = -limit
-        while h < limit:
-            cells.append((g, h))
-            h += step
-        g += step
-    # Swept in order, not shuffled. Shuffling makes a lattice behave exactly like
-    # the random darts it replaced -- each placement blocks its neighbours and the
-    # gaps never close. Sweeping packs each row against the last.
+    inner_face = WALL_RADIUS - WALL_THICK_V / 2.0 - 0.35
+    base_taken = list(taken)
+    best = None
 
-    for gx, gz in cells:
-        cx = gx + rng.uniform(-0.35, 0.35)
-        cz = gz + rng.uniform(-0.35, 0.35)
-        if math.hypot(cx, cz) > limit:
-            continue
-        model = rng.choice(HOUSE_PICKS)
-        mw, md = PACK_HOUSES[model][:2]
-        w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
-        # Square to the grid, with a little slop: a plot squeezed in behind a
-        # street still lines up with its neighbours.
-        quarter = rng.choice([0.0, 90.0, 180.0, 270.0])
-        hx, hz = (w / 2.0, d / 2.0) if quarter % 180.0 == 0.0 else (d / 2.0, w / 2.0)
-        if not free(cx, cz, hx, hz):
-            continue
-        taken.append((cx, cz, hx, hz))
-        plots.append({
-            "vx": cx, "vz": cz, "w": w, "d": d, "model": model,
-            "storeys": rng.choice([1, 2, 2, 3, 3]),
-            "yaw": quarter - VILLAGE_TURN + rng.uniform(-3.0, 3.0),
-            "brick": rng.random() < 0.5,
-            "timber": rng.random() < 0.4,
-        })
+    for phase_x in (0.0, 0.33, 0.66):
+        for phase_z in (0.0, 0.33, 0.66):
+            trial_taken = list(base_taken)
+            trial_plots = []
+            trial_rng = random.Random(31)
+
+            g = -WALL_RADIUS + phase_z * step
+            while g < WALL_RADIUS:
+                h = -WALL_RADIUS + phase_x * step
+                while h < WALL_RADIUS:
+                    cx, cz = h, g
+                    h += step
+                    model = trial_rng.choice(HOUSE_PICKS)
+                    mw, md = PACK_HOUSES[model][:2]
+                    w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
+                    quarter = trial_rng.choice([0.0, 90.0, 180.0, 270.0])
+                    hx, hz = ((w / 2.0, d / 2.0) if quarter % 180.0 == 0.0
+                              else (d / 2.0, w / 2.0))
+
+                    # How far the footprint reaches along the radius. The box is
+                    # square to the village grid, so project its half-extents onto
+                    # the radial direction; the diagonal is over-cautious by up to
+                    # 40% and pushes the whole outer row back off the wall.
+                    span = math.hypot(cx, cz)
+                    if span < 0.001:
+                        continue
+                    reach = abs(hx * cx / span) + abs(hz * cz / span)
+                    if span + reach > inner_face:
+                        continue
+
+                    blocked = False
+                    for axis, fixed, ext in STREETS:
+                        half = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.15
+                        if axis == "x" and abs(cz - fixed) < half + hz and abs(cx) <= ext:
+                            blocked = True
+                            break
+                        if axis == "z" and abs(cx - fixed) < half + hx and abs(cz) <= ext:
+                            blocked = True
+                            break
+                    if blocked:
+                        continue
+                    if abs(cx) < SQUARE_HALF + hx and abs(cz) < SQUARE_HALF + hz:
+                        continue
+                    if any(abs(cx - ox) < hx + ohx + 0.08 and abs(cz - oz) < hz + ohz + 0.08
+                           for ox, oz, ohx, ohz in trial_taken):
+                        continue
+
+                    trial_taken.append((cx, cz, hx, hz))
+                    trial_plots.append({
+                        "vx": cx, "vz": cz, "w": w, "d": d, "model": model,
+                        "storeys": trial_rng.choice([1, 2, 2, 3, 3]),
+                        "yaw": quarter - VILLAGE_TURN + trial_rng.uniform(-2.0, 2.0),
+                        "brick": trial_rng.random() < 0.5,
+                        "timber": trial_rng.random() < 0.4,
+                    })
+                g += step
+
+            if best is None or len(trial_plots) > len(best[0]):
+                best = (trial_plots, trial_taken, (phase_x, phase_z))
+
+    plots.extend(best[0])
+    taken[:] = best[1]
+    print(f"  infill lattice origin {best[2]} fitted {len(best[0])}")
 
     print(f"  plots: {street_count} on street frontages, "
           f"{len(plots) - street_count} infill")
