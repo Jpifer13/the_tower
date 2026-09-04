@@ -55,6 +55,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Square on to the fireplace, which sits 55 degrees to the left.
+    def Camera "AtFire"
+    {
+        float focalLength = 16
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-6, 180, 0)
+        double3 xformOp:translate = (0.0, 1.65, 1.60)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Seated, looking at the desk and the props on it.
     def Camera "AtDesk"
     {

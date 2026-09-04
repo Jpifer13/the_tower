@@ -27,9 +27,21 @@ SEGMENTS      = 96     # around the circle
 # visionOS puts the user at the origin looking down -Z, so the room is authored in
 # USER-RELATIVE space: origin = your seat, -Z = the desk you face, +X = your right.
 WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
-FIRE_CENTRE   = -55.0  # mirrored, to your left
+FIRE_CENTRE   = 180.0  # directly opposite the desk: behind you seated, facing
+                       # you the moment you turn round or stand up
 WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
 WALL_THICK    = 0.35   # m, wall thickness = depth of the window reveal
+# Fireplace. Built rather than bought: the free Quaternius tier has no fireplace,
+# and a hearth set into a curved wall is architecture, like the shell.
+FIRE_BREAST_W = 2.00   # m across the chimney breast
+FIRE_BREAST_D = 0.75   # m it projects into the room
+FIRE_BREAST_H = 3.20   # m to the top of the breast
+FIRE_OPEN_W   = 1.25   # m, the opening
+FIRE_OPEN_H   = 1.15
+FIRE_HEARTH_D = 0.45   # m the hearth slab reaches past the breast
+FIRE_HEARTH_T = 0.09
+FIRE_EMBED    = 0.15   # m set back into the wall, so the flat breast meets the curve
+
 GLASS_OPACITY = 0.14   # how much the pane tints the view
 ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
                        # invisible from outside and casts no shadow.
@@ -169,6 +181,9 @@ class Mesh:
             return self._glass_material(indent)
         if self.name.startswith("Flame"):
             return self._flame_material(indent)
+        # Match "Fire_0", not "Fireplace" — the stone breast is not on fire.
+        if self.name.startswith("Fire_"):
+            return self._fire_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -298,6 +313,25 @@ class Mesh:
 {i}        uniform token info:id = "UsdPreviewSurface"
 {i}        color3f inputs:diffuseColor = (0.05, 0.03, 0.01)
 {i}        color3f inputs:emissiveColor = (2.0, 1.15, 0.42)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 1
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _fire_material(self, indent):
+        """Hotter and more orange than a candle, and brighter, since it is the
+        biggest source in the room once it is lit."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.08, 0.02, 0.0)
+{i}        color3f inputs:emissiveColor = (2.6, 0.85, 0.18)
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 1
 {i}        token outputs:surface
@@ -565,6 +599,66 @@ def skydome():
     return m.material_usda() + m.usda()
 
 
+def fireplace():
+    """Chimney breast, recessed opening, hearth, and the fire itself.
+
+    Built in a local frame on the wall: u runs along the tangent, v is up, w goes
+    inward from the wall surface. The breast starts slightly *inside* the wall so
+    a flat face meets the curve without leaving a gap at its corners.
+    """
+    stone = Mesh("Hearth", (0.42, 0.41, 0.39), texture=WALL_TEXTURE, tint=WALL_TINT)
+    th = math.radians(FIRE_CENTRE)
+    base = (R * math.sin(th), 0.0, -R * math.cos(th) - SEAT_Z)
+    tan = (math.cos(th), 0.0, math.sin(th))          # along the wall
+    inw = (-math.sin(th), 0.0, math.cos(th))         # into the room
+
+    def fp(u, v, w):
+        return (base[0] + u * tan[0] + w * inw[0],
+                base[1] + v,
+                base[2] + u * tan[2] + w * inw[2])
+
+    def face(corners, normal, size):
+        stone.face([fp(*c) for c in corners], normal,
+                   [(0, 0), (size[0] / TILE, 0), (size[0] / TILE, size[1] / TILE), (0, size[1] / TILE)])
+
+    hw, ow = FIRE_BREAST_W / 2.0, FIRE_OPEN_W / 2.0
+    d, h, oh = FIRE_BREAST_D, FIRE_BREAST_H, FIRE_OPEN_H
+    back = -FIRE_EMBED
+    out = tuple(inw)
+    up, down = (0.0, 1.0, 0.0), (0.0, -1.0, 0.0)
+    left = tuple(-c for c in tan)
+    right = tuple(tan)
+
+    # Face onto the room, in three pieces around the opening
+    face([(-hw, 0, d), (-ow, 0, d), (-ow, oh, d), (-hw, oh, d)], out, (hw - ow, oh))
+    face([(ow, 0, d), (hw, 0, d), (hw, oh, d), (ow, oh, d)], out, (hw - ow, oh))
+    face([(-hw, oh, d), (hw, oh, d), (hw, h, d), (-hw, h, d)], out, (FIRE_BREAST_W, h - oh))
+    # Sides and top of the breast
+    face([(-hw, 0, back), (-hw, 0, d), (-hw, h, d), (-hw, h, back)], left, (d - back, h))
+    face([(hw, 0, d), (hw, 0, back), (hw, h, back), (hw, h, d)], right, (d - back, h))
+    face([(-hw, h, back), (-hw, h, d), (hw, h, d), (hw, h, back)], up, (FIRE_BREAST_W, d - back))
+    # Inside the opening: back, jambs, lintel, and the floor of the firebox
+    face([(-ow, 0, back), (ow, 0, back), (ow, oh, back), (-ow, oh, back)], out, (FIRE_OPEN_W, oh))
+    face([(-ow, 0, back), (-ow, 0, d), (-ow, oh, d), (-ow, oh, back)], right, (d - back, oh))
+    face([(ow, 0, d), (ow, 0, back), (ow, oh, back), (ow, oh, d)], left, (d - back, oh))
+    face([(-ow, oh, back), (-ow, oh, d), (ow, oh, d), (ow, oh, back)], down, (FIRE_OPEN_W, d - back))
+    face([(-ow, 0, back), (ow, 0, back), (ow, 0, d), (-ow, 0, d)], up, (FIRE_OPEN_W, d - back))
+    # Hearth slab, reaching out onto the floor
+    sw = ow + 0.22
+    face([(-sw, FIRE_HEARTH_T, d), (sw, FIRE_HEARTH_T, d),
+          (sw, FIRE_HEARTH_T, d + FIRE_HEARTH_D), (-sw, FIRE_HEARTH_T, d + FIRE_HEARTH_D)],
+         up, (sw * 2, FIRE_HEARTH_D))
+    face([(-sw, 0, d + FIRE_HEARTH_D), (sw, 0, d + FIRE_HEARTH_D),
+          (sw, FIRE_HEARTH_T, d + FIRE_HEARTH_D), (-sw, FIRE_HEARTH_T, d + FIRE_HEARTH_D)],
+         out, (sw * 2, FIRE_HEARTH_T))
+
+    # The fire. Emissive, and named so Swift can hang a light and a flicker on it.
+    centre = fp(0.0, 0.32, d * 0.45)
+    fire = Mesh("Fire_0", (1.0, 0.45, 0.12), translate=centre)
+    sphere(fire, (0.0, 0.0, 0.0), 0.26, 10, 8)
+    return stone.material_usda() + stone.usda() + fire.material_usda() + fire.usda()
+
+
 def tower_shaft():
     """The tower continuing down below the room, to the ground far below.
 
@@ -622,7 +716,7 @@ GROUND_RADIUS = 130.0
 PROPS = [
     ("Table_Large",       0.00, 0.00, -0.85,   0.0),
     ("Chair_1",           0.00, 0.00,  0.20, 180.0),
-    ("Bookcase_2",        0.00, 0.00,  7.05, 180.0),
+    ("Bookcase_2",        2.67, 0.00,  6.13,  40.0),   # moved: the fireplace took 180deg
     ("Shelf_Arch",       -3.30, 0.00,  2.60,  90.0),
     ("Chest_Wood",       -2.60, 0.00,  5.20,  30.0),
     ("Stool",             2.30, 0.00,  4.20,   0.0),
@@ -865,6 +959,7 @@ def main():
     beams = roof_structure()
     sky = skydome()
     shaft = tower_shaft()
+    hearth = fireplace()
     hood = neighbourhood()
     grnd = ground()
     prp = props()
@@ -885,7 +980,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{shaft}{grnd}{hood}{sky}{prp}{cnd}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{hearth}{shaft}{grnd}{hood}{sky}{prp}{cnd}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -900,6 +995,8 @@ def Xform "TowerShell"
     for k, v in sorted(Mesh.flip_by_mesh.items(), key=lambda kv: -kv[1]):
         print(f"      {k}: {v}")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
+    print(f"  fireplace: {FIRE_BREAST_W} m breast at {FIRE_CENTRE}deg, "
+          f"{FIRE_OPEN_W}x{FIRE_OPEN_H} m opening")
     print(f"  candles: {len(CANDLES)} props, "
           f"{sum(len(c[5]) for c in CANDLES)} flames")
     print(f"  props: {len(PROPS)} placed" + ("" if SHOW_AIDS else "; blockout aids off (TOWER_AIDS=1 to show)"))

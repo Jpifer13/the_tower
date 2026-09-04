@@ -80,7 +80,7 @@ window │      │   = your actual clear floor    │            │
 |---|---|---|
 | Desk + you | South, against the wall | Mac Virtual Display floats here, over the desk |
 | Window | **West — to your right** | Tall, reachable, lean-out-able. The focal point |
-| Fireplace | East — to your left | Peripheral warmth when seated; visible while pacing |
+| Fireplace | **Directly opposite the desk** (changed 2026-09-03) | Behind you seated; faces you the moment you turn or stand |
 | Shelves | North curve, behind you | Where the clutter goes |
 | Stair opening | North-west, at the perimeter | Sells "top floor". Railed, and outside the walking path |
 

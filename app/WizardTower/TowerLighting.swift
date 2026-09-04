@@ -30,6 +30,12 @@ final class LightRig {
 
     let root = Entity()
 
+    /// Room centre, in the same user-relative space the generator uses:
+    /// SEAT_Z in tools/generate_tower_shell.py.
+    private static let seatOffsetZ: Float = -2.95
+    /// The fire is the room's biggest source once lit.
+    private static let fireIntensity: Float = 7500
+
     /// One light per candle, not per wick. A six-cup candelabra reads the same lit
     /// by a single source at its centre, and 22 point lights is more than the room
     /// needs or the device should pay for. Every candle gets one, so none is dark.
@@ -37,6 +43,7 @@ final class LightRig {
     private let sun = Entity()
     private var iblEntity: Entity?
     private var chandelierLight: Entity?
+    private var fireLight: Entity?
     private var flames: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
@@ -58,6 +65,31 @@ final class LightRig {
         await applySky(state, to: scene)
         applySun(state)
         applyCandles(state, in: scene)
+        applyFire(in: scene)
+    }
+
+    /// The hearth. A spot light aimed out of the opening, because point lights
+    /// cannot cast shadows and the fire should throw the room's longest ones.
+    /// It burns whenever you are here — a toggle is a Phase 5 nice-to-have.
+    private func applyFire(in scene: Entity) {
+        guard fireLight == nil,
+              let fire = Self.findNamed(prefix: "Fire_", in: scene).first else { return }
+        let at = fire.position(relativeTo: nil)
+        let entity = Entity()
+        entity.name = "FireLight"
+        var spot = SpotLightComponent()
+        spot.intensity = Self.fireIntensity
+        spot.attenuationRadius = 9.0
+        spot.innerAngleInDegrees = 60
+        spot.outerAngleInDegrees = 150
+        spot.color = UIColor(red: 1.0, green: 0.55, blue: 0.20, alpha: 1)
+        entity.components.set(spot)
+        entity.components.set(SpotLightComponent.Shadow())
+        entity.position = at
+        // Aim out of the hearth, across the middle of the room at head height.
+        entity.look(at: [0, 1.1, -Self.seatOffsetZ], from: at, relativeTo: nil)
+        root.addChild(entity)
+        fireLight = entity
     }
 
     // MARK: - Window light
@@ -243,15 +275,29 @@ final class LightRig {
                     light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
                     candle.entity.components.set(light)
                 }
+                if let fire = self.fireLight,
+                   var spot = fire.components[SpotLightComponent.self] {
+                    // Slower and broader than a candle: a fire breathes rather
+                    // than gutters.
+                    let breathe = sin(t * 1.3) * 0.6 + sin(t * 3.1) * 0.25 + sin(t * 6.7) * 0.15
+                    spot.intensity = Self.fireIntensity * Float(1.0 + 0.30 * breathe)
+                    fire.components.set(spot)
+                }
                 try? await Task.sleep(for: .milliseconds(80))
             }
         }
     }
 
     private static func findFlames(in entity: Entity) -> [Entity] {
+        findNamed(prefix: "Flame_", in: entity)
+    }
+
+    private static func findNamed(prefix: String, in entity: Entity) -> [Entity] {
         var found: [Entity] = []
-        if entity.name.hasPrefix("Flame") { found.append(entity) }
-        for child in entity.children { found.append(contentsOf: findFlames(in: child)) }
+        if entity.name.hasPrefix(prefix) { found.append(entity) }
+        for child in entity.children {
+            found.append(contentsOf: findNamed(prefix: prefix, in: child))
+        }
         return found
     }
 }
