@@ -792,7 +792,7 @@ STOREY_H      = 3.12
 VILLAGE_BEARING = 50.0     # deg from the desk
 VILLAGE_DIST    = 46.0     # m from the tower
 VILLAGE_TURN    = -18.0    # deg the village is rotated, so streets are not square on
-WALL_RADIUS     = 54.0     # m, the curtain wall
+WALL_RADIUS     = 45.0     # m — hugs the built area; wider left a ring of empty grass
 WALL_HEIGHT_V   = 6.20     # m to the walkway
 WALL_THICK_V    = 1.30
 MERLON_H        = 1.10
@@ -812,42 +812,73 @@ def village_to_world(vx, vz):
     return (cx + rx, cz + rz)
 
 
+# Streets: (axis the street runs along, offset across, half-length)
+STREETS = [
+    ("x",   0.0, 36.0),
+    ("x",  19.0, 32.0),
+    ("x", -19.0, 32.0),
+    ("z",   0.0, 27.0),
+    ("z",  24.0, 22.0),
+    ("z", -24.0, 22.0),
+]
+
+
 def village_layout():
-    """Houses lining the streets. Deterministic, so the village never reshuffles."""
+    """Houses lining the streets, rejected where they would overlap.
+
+    Deterministic, so the village never reshuffles between runs.
+    """
     rng = random.Random(7)
     plots = []
+    taken = []          # axis-aligned footprints already used, in village space
     roofs = [(4, 4), (4, 6), (4, 8), (6, 6), (6, 8), (6, 10)]
 
-    def row(along, fixed, axis, facing, span, gap_at=None):
-        """Fill one side of a street with houses, leaving a gap for the crossing."""
-        pos = -span
-        while pos < span:
-            w, d = rng.choice(roofs)
-            depth = d if axis == "x" else w
-            if gap_at is not None and abs(pos) < gap_at:
-                pos += 6.0
-                continue
-            if axis == "x":
-                vx, vz = pos + w / 2.0, fixed + (depth / 2.0) * (1 if facing < 0 else -1)
-            else:
-                vx, vz = fixed + (depth / 2.0) * (1 if facing < 0 else -1), pos + w / 2.0
-            plots.append({
-                "vx": vx, "vz": vz, "w": w, "d": d,
-                "storeys": rng.choice([1, 2, 2, 2, 3]),
-                "yaw": (0.0 if axis == "x" else 90.0) + (0 if facing < 0 else 180)
-                       + rng.uniform(-4, 4),
-                "brick": rng.random() < 0.45,
-                "timber": rng.random() < 0.35,
-            })
-            pos += w + rng.uniform(1.2, 3.0)
-        _ = along
+    def free(cx, cz, hx, hz):
+        """Reject overlaps, and keep every street corridor clear."""
+        for axis, fixed, _ in STREETS:
+            width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.5
+            if axis == "x" and abs(cz - fixed) < width + hz:
+                return False
+            if axis == "z" and abs(cx - fixed) < width + hx:
+                return False
+        for ox, oz, ohx, ohz in taken:
+            if abs(cx - ox) < hx + ohx + 0.5 and abs(cz - oz) < hz + ohz + 0.5:
+                return False
+        return True
 
-    half = STREET_W / 2.0
-    lane = LANE_W / 2.0
-    row(None, -half, "x", -1, 36.0, gap_at=lane + 3)
-    row(None, half, "x", 1, 36.0, gap_at=lane + 3)
-    row(None, -lane, "z", -1, 26.0, gap_at=half + 3)
-    row(None, lane, "z", 1, 26.0, gap_at=half + 3)
+    for axis, fixed, span in STREETS:
+        half_street = (STREET_W if fixed == 0.0 else LANE_W) / 2.0
+        for side in (-1, 1):
+            pos = -span
+            while pos < span:
+                w, d = rng.choice(roofs)
+                # The house's width always runs along the street; its depth always
+                # runs away from it. Getting these the wrong way round on the
+                # cross lanes is what jammed the houses into each other.
+                along, deep = w, d
+                # Must exceed the clearance in free(), or every house rejects itself.
+                setback = half_street + deep / 2.0 + 1.0
+                if axis == "x":
+                    cx, cz = pos + along / 2.0, fixed + side * setback
+                    hx, hz = along / 2.0, deep / 2.0
+                    yaw = 0.0 if side < 0 else 180.0
+                else:
+                    cx, cz = fixed + side * setback, pos + along / 2.0
+                    hx, hz = deep / 2.0, along / 2.0
+                    yaw = 90.0 if side < 0 else 270.0
+
+                if free(cx, cz, hx, hz):
+                    taken.append((cx, cz, hx, hz))
+                    plots.append({
+                        "vx": cx, "vz": cz, "w": w, "d": d,
+                        "storeys": rng.choice([2, 2, 2, 3, 1]),
+                        "yaw": yaw + rng.uniform(-2.5, 2.5),
+                        "brick": rng.random() < 0.45,
+                        "timber": rng.random() < 0.35,
+                    })
+                    pos += along + rng.uniform(0.4, 1.6)   # terraced, not scattered
+                else:
+                    pos += 2.0
     return plots
 
 
