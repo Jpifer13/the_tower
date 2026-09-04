@@ -53,8 +53,11 @@ final class AppModel {
                 daylight: time == .day ? 1.0 : (time == .sunset ? 0.35 : 0.0))
         }
     }
-    /// Mixed, not full: full immersion imposes a 1.5 m safety boundary that would eject
-    /// you mid-pace. The room is a closed volume, so it occludes passthrough anyway.
-    /// See docs/learning-notes/immersion-style-and-the-15m-boundary.md
-    var immersionStyle: any ImmersionStyle = .mixed
+    /// Full, not mixed. Mixed lets you roam past the 1.5 m safety boundary, but
+    /// RealityKit then lights the room from the real surroundings and no amount of
+    /// image-based light overrides it — night could never be dark. With glass in
+    /// the window there is nothing to lean out of anyway, so the boundary costs
+    /// little and the lighting is worth far more.
+    /// See docs/learning-notes/mixed-immersion-lighting.md
+    var immersionStyle: any ImmersionStyle = .full
 }

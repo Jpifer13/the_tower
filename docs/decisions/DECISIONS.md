@@ -49,6 +49,29 @@ the motivation.
 
 ---
 
+## 2026-09-03 — Full immersion, and glaze the window
+
+**Context:** `.mixed` was chosen to escape the 1.5 m safety boundary so the room could be paced
+around. Once the room had lighting, it turned out that mixed cannot be lit: RealityKit lights
+virtual content from the real surroundings and `ImageBasedLightComponent` does not override it.
+Night stayed fully bright with every one of our lights disabled; the same build in `.full` was
+pitch black.
+
+**Decision:** Switch to `.full`, and put glass in the window.
+
+**Why:** The glass removes the reason to lean out, and the boundary is a 1.5 m *radius* centred
+where you start — roughly two paces back from the desk. That is a small cost against never being
+able to have a dark room, candles that read as sources, or a fire worth lighting.
+
+**Consequences:**
+- Pacing is limited to about two paces unless you stand and recentre.
+- Lighting is now entirely ours, which is what makes Phase 4's atmosphere work possible.
+- The glass must not cast shadows or it blocks the window light; handled in `TowerLighting`.
+- Worth re-testing on hardware: a dim real study may intrude far less than the simulator's
+  bright living room, which might make mixed viable again.
+
+---
+
 ## Gate 1 — After Phase 1: Did Reality Composer Pro click?
 
 - **Question:** Was RCP gratifying or frustrating? If frustrating, consider partnering with a 3D artist or drastically simplifying the scene.

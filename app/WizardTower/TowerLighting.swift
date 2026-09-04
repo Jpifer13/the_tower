@@ -49,6 +49,7 @@ final class LightRig {
     }
 
     func apply(_ state: LightingState, to scene: Entity) async {
+        Self.stopGlassCastingShadows(in: scene)
         await applySky(state, to: scene)
         applySun(state)
         applyCandles(state)
@@ -92,6 +93,15 @@ final class LightRig {
         } catch {
             log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
         }
+    }
+
+    /// The window pane must not cast, or it blocks the very light it is there to
+    /// let through. Transparency does not affect shadow casting on its own.
+    private static func stopGlassCastingShadows(in entity: Entity) {
+        if entity.name.localizedCaseInsensitiveContains("glass") {
+            entity.components.set(DynamicLightShadowComponent(castsShadow: false))
+        }
+        entity.children.forEach { stopGlassCastingShadows(in: $0) }
     }
 
     /// Apply the receiver to the whole subtree and report how many entities got it.

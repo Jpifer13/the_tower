@@ -30,6 +30,7 @@ WINDOW_CENTRE = 55.0   # degrees; 0=desk(front), +ve=toward your right
 FIRE_CENTRE   = -55.0  # mirrored, to your left
 WINDOW_WIDTH  = 2.00   # m, along the arc — widened with the room to hold its 27deg
 WALL_THICK    = 0.35   # m, wall thickness = depth of the window reveal
+GLASS_OPACITY = 0.14   # how much the pane tints the view
 ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
                        # invisible from outside and casts no shadow.
 
@@ -160,6 +161,8 @@ class Mesh:
     def material_usda(self, indent="    "):
         if self.name == "Sky":
             return self._sky_material(indent)
+        if self.name == "Glass":
+            return self._glass_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -252,6 +255,27 @@ class Mesh:
 {i}        color3f inputs:emissiveColor.connect = {base}/skyTex.outputs:rgb>
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 1
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _glass_material(self, indent):
+        """Thin, mostly clear, slightly cool. Shadow casting is switched off in
+        Swift — see TowerLighting — otherwise the pane blocks the window light it
+        is supposed to let through."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.78, 0.85, 0.88)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.06
+{i}        float inputs:opacity = {GLASS_OPACITY}
+{i}        float inputs:ior = 1.5
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -415,7 +439,27 @@ def build():
             reveal.face([p(a, y), p(b, y), po(b, y), po(a, y)], nrm,
                         [(u0, 0.0), (u1, 0.0), (u1, WALL_THICK / TILE), (u0, WALL_THICK / TILE)])
 
-    parts = [floor, wall, roof, reveal]
+    # Glazing. Sits mid-way through the reveal so the stone frames it on both
+    # sides, and is emitted twice so it reads from inside and out.
+    glass = Mesh("Glass", (0.78, 0.85, 0.88))
+    glass_r = R + WALL_THICK / 2.0
+
+    def gp(theta_deg, y):
+        t = math.radians(theta_deg)
+        return (glass_r * math.sin(t), y, -glass_r * math.cos(t) - SEAT_Z)
+
+    for seg in range(SEG0, SEG1):
+        a, b = seg * step_deg, (seg + 1) * step_deg
+        mid = math.radians((a + b) / 2.0)
+        inward = (-math.sin(mid), 0.0, math.cos(mid))
+        outward = (math.sin(mid), 0.0, -math.cos(mid))
+        quad = [gp(a, WINDOW_SILL), gp(b, WINDOW_SILL),
+                gp(b, WINDOW_HEAD), gp(a, WINDOW_HEAD)]
+        uv = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        glass.face(quad, inward, uv)
+        glass.face(list(reversed(quad)), outward, list(reversed(uv)))
+
+    parts = [floor, wall, roof, reveal, glass]
     body = "".join(m.material_usda() + m.usda() for m in parts)
     return floor, body
 

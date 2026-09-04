@@ -39,7 +39,8 @@ Read it aloud. If it takes much over a minute, cut it, not the room.
 | Ceiling | **Conical** — top floor of the tower. Eaves **5.49 m (18 ft)**, apex **9.89 m (32.4 ft)** | Reads unmistakably as a tower top |
 | Room diameter | **8.8 m (28.9 ft)** | Widened 60% from 5.5 m — 5.5 felt tight |
 | Time of day | Real-time sync, with manual override | Manual needed for screenshots and for night owls |
-| Immersion style | **`.mixed`**, with a fully enclosing room | `.full` imposes a 1.5 m safety leash that would break pacing |
+| Immersion style | **`.full`** (changed 2026-09-03) | Mixed cannot be made dark: RealityKit lights it from the real room |
+| Window | **Glazed** | Nothing to lean out of, so the 1.5 m boundary costs little |
 
 ## Layout
 
@@ -144,12 +145,14 @@ This is the decision with the most technical weight, so it's worth being explici
 3. **Scale errors become obvious.** Seated, you forgive a slightly-wrong room. Walking to a
    window that turns out to be 1.4 m tall is immediately wrong. Block out against a 1.7 m
    reference from the first hour of Phase 4.
-4. **The 1.5 m boundary — solved by using `.mixed`.** Full immersion ends the experience if your
-   head leaves a 1.5 m radius, which would eject you mid-pace. Mixed immersion has no such leash,
-   and an enclosing room occludes passthrough anyway. See
-   [`../learning-notes/immersion-style-and-the-15m-boundary.md`](../learning-notes/immersion-style-and-the-15m-boundary.md).
-   The trade: nothing will stop you walking into real furniture, so the virtual room must be sized
-   to your real clear floor space.
+4. **The 1.5 m boundary — accepted, not avoided (revised 2026-09-03).** `.mixed` escapes the
+   leash but cannot be lit: RealityKit lights virtual content from the real surroundings and
+   `ImageBasedLightComponent` does not override it, so night was never dark. With glass in the
+   window there is nothing to lean out of, so the boundary costs little and control of the light
+   is worth far more. It is a **radius**, 1.5 m in every direction, but centred on where you
+   start — so from the desk it is about two paces back, not three metres. Standing and recentring
+   re-establishes it. See
+   [`../learning-notes/mixed-immersion-lighting.md`](../learning-notes/mixed-immersion-lighting.md).
 5. **The floor matters now.** In a seated design the floor is barely seen. Here it's underfoot
    and in view while walking.
 
