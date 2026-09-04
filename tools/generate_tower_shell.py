@@ -100,6 +100,8 @@ ROUGH_MIN = 0.45
 
 
 class Mesh:
+    flipped = 0
+
     def __init__(self, name, color, texture=None, tint=(1.0, 1.0, 1.0)):
         self.name, self.color, self.texture, self.tint = name, color, texture, tint
         self.pts, self.counts, self.idx, self.normals, self.uvs = [], [], [], [], []
@@ -107,12 +109,32 @@ class Mesh:
     def face(self, verts, normal, uvs=None):
         """normal may be one vector for the whole face, or one per vertex for
         smooth shading across a curved surface."""
-        base = len(self.pts)
-        self.pts.extend(verts)
+        # RealityKit ignores doubleSided and culls back faces, so a quad wound the
+        # wrong way renders as nothing at all — which looks like missing geometry
+        # rather than like a bug. Winding is easy to invert by accident whenever a
+        # parameter runs downward. So: trust the supplied normal, and reorder the
+        # vertices to match it.
+        want = normal[0] if isinstance(normal, list) else normal
+        e1 = [verts[1][k] - verts[0][k] for k in range(3)]
+        e2 = [verts[2][k] - verts[0][k] for k in range(3)]
+        geo = (e1[1] * e2[2] - e1[2] * e2[1],
+               e1[2] * e2[0] - e1[0] * e2[2],
+               e1[0] * e2[1] - e1[1] * e2[0])
+        if sum(geo[k] * want[k] for k in range(3)) < 0.0:
+            verts = list(reversed(verts))
+            if uvs is not None:
+                uvs = list(reversed(uvs))
+            if isinstance(normal, list):
+                normal = list(reversed(normal))
+            Mesh.flipped += 1
+
         if isinstance(normal, list):
             self.normals.extend(normal)
         else:
             self.normals.extend([normal] * len(verts))
+        base = len(self.pts)
+        self.pts.extend(verts)
+
         if uvs is None:
             # Planar fallback: project onto whichever plane the face least faces.
             ax, ay, az = abs(normal[0]), abs(normal[1]), abs(normal[2])
@@ -667,6 +689,7 @@ def Xform "TowerShell"
     print(f"  origin = seat; desk edge {abs(desk_z) - DESK_D / 2.0:.2f} m ahead")
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
     print(f"  roof: wall plate + apex boss (no rafters)")
+    print(f"  winding: {Mesh.flipped} faces reordered to match their normals")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
     print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
