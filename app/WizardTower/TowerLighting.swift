@@ -47,6 +47,7 @@ final class LightRig {
     private var chandelierLight: Entity?
     private var fireLight: Entity?
     private var orbLight: Entity?
+    private var fireParticles: Entity?
     private var flames: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
@@ -70,7 +71,54 @@ final class LightRig {
         applyCandles(state, in: scene)
         applyFire(in: scene)
         applyOrb(in: scene)
+        applyFireParticles(in: scene)
     }
+
+    /// Flames in the hearth.
+    ///
+    /// A particle emitter, not geometry: fire has no shape to model. Only the
+    /// hearth gets one — thirty candle flames with emitters each would be a lot of
+    /// simulation for something that reads as a 2 cm dot, so those stay emissive
+    /// geometry with an animated light.
+    private func applyFireParticles(in scene: Entity) {
+        guard fireParticles == nil,
+              let fire = Self.findNamed(prefix: "Fire_", in: scene).first else { return }
+
+        var emitter = ParticleEmitterComponent()
+        // A shallow bed the width of the firebox, so flames rise off coals rather
+        // than from a point.
+        emitter.emitterShape = .box
+        emitter.emitterShapeSize = [0.34, 0.04, 0.22]
+        emitter.birthDirection = .local
+        emitter.emissionDirection = [0, 1, 0]
+        emitter.speed = 0.30
+        emitter.speedVariation = 0.18
+
+        var flame = ParticleEmitterComponent.ParticleEmitter()
+        flame.birthRate = 190
+        flame.birthRateVariation = 40
+        flame.lifeSpan = 0.85
+        flame.lifeSpanVariation = 0.35
+        flame.size = 0.085
+        flame.sizeVariation = 0.035
+        flame.acceleration = [0, 0.45, 0]          // convection
+        flame.dampingFactor = 1.4
+        flame.spreadingAngle = 0.42
+        flame.angleVariation = .pi
+        flame.blendMode = .additive                 // fire adds light, never occludes
+        flame.billboardMode = .billboard
+        flame.isLightingEnabled = false             // it is the source, not lit
+        flame.opacityCurve = .quickFadeInOut
+        // Yellow at the base cooling to red as it rises.
+        flame.color = .evolving(
+            start: .single(UIColor(red: 1.0, green: 0.78, blue: 0.28, alpha: 1)),
+            end: .single(UIColor(red: 0.85, green: 0.16, blue: 0.03, alpha: 1)))
+        emitter.mainEmitter = flame
+
+        fire.components.set(emitter)
+        fireParticles = fire
+    }
+
 
     /// The orb on its pedestal. A point light, so it throws in every direction as
     /// a floating light should — which does mean no shadows, since RealityKit has

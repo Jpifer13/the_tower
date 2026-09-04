@@ -223,6 +223,31 @@ Mac Virtual Display covers most of it, but that makes the wall directly ahead **
 estate, not background** — it wants a shelf over the desk, a tapestry, or something to break it
 up. Bare stone at arm's length for eight hours would be oppressive.
 
+## Fire animation
+
+Decided 2026-09-03, after checking what the SDK actually offers.
+
+`ParticleEmitterComponent` is available from visionOS 1.0 and fully configurable in
+code, but there are **no built-in presets in the Swift API** — RCP's "Sparks" and
+the like are a UI feature that bakes values into USD.
+
+| | Count | Technique |
+|---|---|---|
+| Hearth fire | 1 | `ParticleEmitterComponent`, configured in Swift |
+| Candle flames | 30 | Emissive geometry + animated light. **Not** particles |
+| Orb | 1 | Emissive geometry + a slow light swell |
+
+Thirty emitters would be a lot of simulation for something that reads as a 2 cm
+dot, and the eye reads *movement*, not particle count.
+
+Particles are attached in Swift to the named `Fire_` entity rather than authored
+into USD: Apple's samples contain no text-authored emitters, so the schema would be
+guesswork, and the generator's job is geometry and names, not behaviour.
+
+**Open:** particles need an `imageSequence` texture to read as flame rather than
+soft dots. Either a CC0 flame sprite sheet, or additive warm dots may be enough at
+hearth distance.
+
 ## Lighting plan
 
 | Source | Type | Colour | Day | Sunset | Night |

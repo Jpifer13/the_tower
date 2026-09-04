@@ -732,9 +732,11 @@ def fireplace():
          out, (sw * 2, FIRE_HEARTH_T))
 
     # The fire. Emissive, and named so Swift can hang a light and a flicker on it.
-    centre = fp(0.0, 0.32, d * 0.45)
+    centre = fp(0.0, FIRE_HEARTH_T + 0.10, d * 0.45)
+    # A small glowing bed of coals. The flames themselves are particles, added in
+    # Swift — fire has no shape worth modelling.
     fire = Mesh("Fire_0", (1.0, 0.45, 0.12), translate=centre)
-    sphere(fire, (0.0, 0.0, 0.0), 0.26, 10, 8)
+    sphere(fire, (0.0, 0.0, 0.0), 0.13, 10, 8)
     return stone.material_usda() + stone.usda() + fire.material_usda() + fire.usda()
 
 
