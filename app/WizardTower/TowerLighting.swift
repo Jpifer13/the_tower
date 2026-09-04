@@ -38,6 +38,20 @@ final class LightRig {
     /// The orb. Cool, steady, and always on — the one light that is not a flame.
     private static let orbIntensity: Float = 5200
 
+    /// Grid of the fire flipbook, if one is supplied. Must match the sheet.
+    /// CGHEVEN's CC0 fire flipbooks are 6x6 or 8x8.
+    private static let flipbookRows = 8
+    private static let flipbookColumns = 8
+
+    /// Loads a sprite sheet from the bundle, or nil if none has been added.
+    private static func flipbook(named name: String) -> TextureResource? {
+        for ext in ["png", "jpg"] {
+            guard let url = Bundle.main.url(forResource: name, withExtension: ext) else { continue }
+            if let texture = try? TextureResource.load(contentsOf: url) { return texture }
+        }
+        return nil
+    }
+
     /// One light per candle, not per wick. A six-cup candelabra reads the same lit
     /// by a single source at its centre, and 22 point lights is more than the room
     /// needs or the device should pay for. Every candle gets one, so none is dark.
@@ -113,6 +127,24 @@ final class LightRig {
         flame.color = .evolving(
             start: .single(UIColor(red: 1.0, green: 0.78, blue: 0.28, alpha: 1)),
             end: .single(UIColor(red: 0.85, green: 0.16, blue: 0.03, alpha: 1)))
+        // A flipbook, if one has been supplied. RealityKit wants a single sprite
+        // sheet in `image` plus the grid in `imageSequence` — not separate frames.
+        // Drop a sheet at app/WizardTower/Skies/../fire_flipbook.png and set the
+        // grid below to match it; without one the particles are soft dots.
+        if let sheet = Self.flipbook(named: "fire_flipbook") {
+            flame.image = sheet
+            var sequence = ParticleEmitterComponent.ParticleEmitter.ImageSequence()
+            sequence.rowCount = Self.flipbookRows
+            sequence.columnCount = Self.flipbookColumns
+            sequence.frameRate = 30
+            sequence.frameRateVariation = 4
+            sequence.initialFrameVariation = Self.flipbookRows * Self.flipbookColumns
+            sequence.animationMode = .looping
+            flame.imageSequence = sequence
+            log.info("fire flipbook loaded, \(Self.flipbookRows)x\(Self.flipbookColumns)")
+        } else {
+            log.info("no fire flipbook — particles will read as soft dots")
+        }
         emitter.mainEmitter = flame
 
         fire.components.set(emitter)
