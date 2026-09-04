@@ -42,6 +42,14 @@ FIRE_HEARTH_D = 0.45   # m the hearth slab reaches past the breast
 FIRE_HEARTH_T = 0.09
 FIRE_EMBED    = 0.15   # m set back into the wall, so the flat breast meets the curve
 
+# Orb on a pedestal, in the middle of the room. Placeholder geometry — the orb is
+# a plain sphere and the pedestal a turned column, both there to hold the position
+# and the light until the real models arrive.
+ORB_PED_H     = 1.05   # m to the top of the pedestal
+ORB_RADIUS    = 0.16
+ORB_GAP       = 0.10   # m the orb floats above the cap
+ORB_SEGS      = 20
+
 GLASS_OPACITY = 0.14   # how much the pane tints the view
 ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
                        # invisible from outside and casts no shadow.
@@ -184,6 +192,8 @@ class Mesh:
         # Match "Fire_0", not "Fireplace" — the stone breast is not on fire.
         if self.name.startswith("Fire_"):
             return self._fire_material(indent)
+        if self.name.startswith("Orb_"):
+            return self._orb_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -334,6 +344,25 @@ class Mesh:
 {i}        color3f inputs:emissiveColor = (2.6, 0.85, 0.18)
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 1
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _orb_material(self, indent):
+        """Cool and bright, deliberately against the warm candles and fire — the
+        one thing in the room that is not firelight."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.06, 0.12, 0.16)
+{i}        color3f inputs:emissiveColor = (0.55, 1.45, 2.20)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.35
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -597,6 +626,51 @@ def skydome():
             nrm = [tuple(-(c[k] - (cx, cy, cz)[k]) / SKY_RADIUS for k in range(3)) for c in quad]
             m.face(quad, nrm, [uv(ph1, th0), uv(ph1, th1), uv(ph0, th1), uv(ph0, th0)])
     return m.material_usda() + m.usda()
+
+
+def orb_and_pedestal():
+    """A glowing orb on a turned pedestal at the middle of the room.
+
+    Placeholder: the orb is a sphere and the pedestal a stack of tapered rings.
+    The orb is named Orb_0 so Swift hangs a light on it, the same way flames work.
+    """
+    stone = Mesh("Pedestal", (0.40, 0.39, 0.37), texture=WALL_TEXTURE, tint=WALL_TINT)
+    cx, cz = 0.0, -SEAT_Z          # middle of the room
+
+    def ring(y0, y1, r0, r1):
+        """A tapered band, plus a cap when it narrows to nothing."""
+        for i in range(ORB_SEGS):
+            t0 = 2.0 * math.pi * i / ORB_SEGS
+            t1 = 2.0 * math.pi * (i + 1) / ORB_SEGS
+            mid = (t0 + t1) / 2.0
+            out = (math.sin(mid), 0.0, math.cos(mid))
+            a0 = (cx + r0 * math.sin(t0), y0, cz + r0 * math.cos(t0))
+            b0 = (cx + r0 * math.sin(t1), y0, cz + r0 * math.cos(t1))
+            a1 = (cx + r1 * math.sin(t0), y1, cz + r1 * math.cos(t0))
+            b1 = (cx + r1 * math.sin(t1), y1, cz + r1 * math.cos(t1))
+            stone.face([a0, b0, b1, a1], out,
+                       [(i / ORB_SEGS * 2, y0 / TILE), ((i + 1) / ORB_SEGS * 2, y0 / TILE),
+                        ((i + 1) / ORB_SEGS * 2, y1 / TILE), (i / ORB_SEGS * 2, y1 / TILE)])
+
+    def disc(y, r, normal):
+        for i in range(ORB_SEGS):
+            t0 = 2.0 * math.pi * i / ORB_SEGS
+            t1 = 2.0 * math.pi * (i + 1) / ORB_SEGS
+            stone.face([(cx, y, cz),
+                        (cx + r * math.sin(t0), y, cz + r * math.cos(t0)),
+                        (cx + r * math.sin(t1), y, cz + r * math.cos(t1))], normal,
+                       [(0.5, 0.5), (0, 0), (1, 0)])
+
+    ring(0.00, 0.10, 0.34, 0.30)          # plinth
+    ring(0.10, 0.22, 0.26, 0.22)          # base moulding
+    ring(0.22, 0.88, 0.20, 0.15)          # shaft, tapering
+    ring(0.88, ORB_PED_H, 0.24, 0.22)     # cap
+    disc(ORB_PED_H, 0.22, (0.0, 1.0, 0.0))
+
+    centre = (cx, ORB_PED_H + ORB_GAP + ORB_RADIUS, cz)
+    orb = Mesh("Orb_0", (0.55, 0.85, 1.0), translate=centre)
+    sphere(orb, (0.0, 0.0, 0.0), ORB_RADIUS, 24, 16)
+    return stone.material_usda() + stone.usda() + orb.material_usda() + orb.usda()
 
 
 def fireplace():
@@ -965,6 +1039,7 @@ def main():
     sky = skydome()
     shaft = tower_shaft()
     hearth = fireplace()
+    orb = orb_and_pedestal()
     hood = neighbourhood()
     grnd = ground()
     prp = props()
@@ -985,7 +1060,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{hearth}{shaft}{grnd}{hood}{sky}{prp}{cnd}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{hearth}{orb}{shaft}{grnd}{hood}{sky}{prp}{cnd}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -1000,6 +1075,7 @@ def Xform "TowerShell"
     for k, v in sorted(Mesh.flip_by_mesh.items(), key=lambda kv: -kv[1]):
         print(f"      {k}: {v}")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
+    print(f"  orb: pedestal {ORB_PED_H} m, orb r{ORB_RADIUS} at the room centre")
     print(f"  fireplace: {FIRE_BREAST_W} m breast at {FIRE_CENTRE}deg, "
           f"{FIRE_OPEN_W}x{FIRE_OPEN_H} m opening")
     print(f"  candles: {len(CANDLES)} props, "

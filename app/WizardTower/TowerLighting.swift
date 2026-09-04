@@ -35,6 +35,8 @@ final class LightRig {
     private static let seatOffsetZ: Float = -2.95
     /// The fire is the room's biggest source once lit.
     private static let fireIntensity: Float = 7500
+    /// The orb. Cool, steady, and always on — the one light that is not a flame.
+    private static let orbIntensity: Float = 5200
 
     /// One light per candle, not per wick. A six-cup candelabra reads the same lit
     /// by a single source at its centre, and 22 point lights is more than the room
@@ -44,6 +46,7 @@ final class LightRig {
     private var iblEntity: Entity?
     private var chandelierLight: Entity?
     private var fireLight: Entity?
+    private var orbLight: Entity?
     private var flames: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
@@ -66,6 +69,21 @@ final class LightRig {
         applySun(state)
         applyCandles(state, in: scene)
         applyFire(in: scene)
+        applyOrb(in: scene)
+    }
+
+    /// The orb on its pedestal. A point light, so it throws in every direction as
+    /// a floating light should — which does mean no shadows, since RealityKit has
+    /// no PointLightComponent.Shadow. A spot would cast but would read as a lamp.
+    private func applyOrb(in scene: Entity) {
+        guard orbLight == nil,
+              let orb = Self.findNamed(prefix: "Orb_", in: scene).first else { return }
+        var light = PointLightComponent()
+        light.intensity = Self.orbIntensity
+        light.attenuationRadius = 7.0
+        light.color = UIColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 1)
+        orb.components.set(light)
+        orbLight = orb
     }
 
     /// The hearth. A spot light aimed out of the opening, because point lights
@@ -274,6 +292,14 @@ final class LightRig {
                         + sin(t * 9.1 + phase * 3.0) * 0.15
                     light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
                     candle.entity.components.set(light)
+                }
+                if let orb = self.orbLight,
+                   var light = orb.components[PointLightComponent.self] {
+                    // A slow swell, not a flicker. It should read as alive but
+                    // steady, against the fire and candles which are neither.
+                    let swell = sin(t * 0.55) * 0.7 + sin(t * 1.27) * 0.3
+                    light.intensity = Self.orbIntensity * Float(1.0 + 0.12 * swell)
+                    orb.components.set(light)
                 }
                 if let fire = self.fireLight,
                    var spot = fire.components[SpotLightComponent.self] {

@@ -65,6 +65,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # The orb on its pedestal, from across the room.
+    def Camera "AtOrb"
+    {
+        float focalLength = 24
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-10, 180, 0)
+        double3 xformOp:translate = (0.0, 1.65, 0.30)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Seated, looking at the desk and the props on it.
     def Camera "AtDesk"
     {
