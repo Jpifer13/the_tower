@@ -5,13 +5,30 @@ import UIKit
 
 private let log = Logger(subsystem: "io.confuseddev.wizardtower", category: "lighting")
 
-/// Builds the room's lighting.
-///
-/// The design makes the window the primary light: image-based lighting generated
-/// from the same sky you can see through the opening, so the room's ambient and
-/// the view agree. On top of that sits a directional sun or moon, and warm point
-/// lights where the candles are.
-enum TowerLighting {
+/// How the room is lit right now.
+struct LightingState: Equatable {
+    var timeOfDay: TimeOfDay
+    /// Degrees above the horizon. Drives intensity and how the light rakes in.
+    var sunElevation: Double
+    /// Degrees clockwise from straight ahead (the desk); the window is at +55.
+    var sunBearingInRoom: Double
+    /// 0 below the horizon, 1 in full day.
+    var daylight: Double
+}
+
+/// The room's lights, held so they can be re-aimed as the day moves rather than
+/// rebuilt. The window is the primary source: image-based lighting generated from
+/// the same sky visible through the opening, plus a directional sun or moon.
+@MainActor
+final class LightRig {
+
+    let root = Entity()
+
+    private let sun = Entity()
+    private var iblEntity: Entity?
+    private var candleEntities: [Entity] = []
+    private var appliedSky: TimeOfDay?
+    private var appliedCandles: Bool?
 
     /// Candle flames, in the same user-relative space as the props.
     /// Kept in step with PROPS in tools/generate_tower_shell.py.
@@ -21,76 +38,97 @@ enum TowerLighting {
         [0.00, 4.05,  2.95],   // Chandelier
     ]
 
-    /// Image-based light. Generated from the sky image at runtime, so no
-    /// Reality Composer Pro environment asset is needed.
-    @MainActor
-    static func imageBasedLight(for time: TimeOfDay) async -> Entity? {
-        // Never fatal: a missing or unusable sky should dim the room, not kill the app.
-        //
-        // UIImage(named:) is really an asset-catalog lookup and does not reliably
-        // find loose bundle files, so resolve the URL explicitly.
-        guard let url = Bundle.main.url(forResource: time.skyImageName, withExtension: "jpg"),
-              let ui = UIImage(contentsOfFile: url.path),
-              let cg = ui.cgImage else {
-            log.error("no sky image named \(time.skyImageName).jpg in the bundle")
-            return nil
-        }
-        log.info("sky \(time.skyImageName) loaded, \(cg.width)x\(cg.height)")
-        let resource: EnvironmentResource
-        do {
-            resource = try await EnvironmentResource
-                .generate(fromEquirectangular: cg, withName: time.skyImageName)
-        } catch {
-            log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
-            return nil
-        }
-        let entity = Entity()
-        entity.name = "IBL"
-        entity.components.set(ImageBasedLightComponent(source: .single(resource),
-                                                       intensityExponent: time.iblExponent))
-        log.info("image-based light ready for \(time.rawValue)")
-        return entity
-    }
-
-    /// Sun or moon through the window. The window sits 55° to the right, so the
-    /// light comes from that side rather than from an arbitrary angle.
-    @MainActor
-    static func sun(for time: TimeOfDay) -> Entity {
-        let entity = Entity()
-        entity.name = "Sun"
-        var light = DirectionalLightComponent()
-        light.intensity = time.sunIntensity
-        let c = time.sunColor
-        light.color = UIColor(red: CGFloat(c.r), green: CGFloat(c.g),
-                              blue: CGFloat(c.b), alpha: 1)
-        entity.components.set(light)
-
-        // Directional lights cast nothing until a Shadow component is added, and
-        // its default 5 m reach does not cover a 9 m room, so the far half would
-        // stay shadowless.
-        entity.components.set(DirectionalLightComponent.Shadow(
+    init() {
+        root.addChild(sun)
+        sun.name = "Sun"
+        // Directional lights cast nothing without a Shadow, and its default 5 m
+        // reach does not cover a 9 m room.
+        sun.components.set(DirectionalLightComponent.Shadow(
             shadowProjection: .automatic(maximumDistance: 28.0),
             depthBias: 1.5))
-
-        // Sunset rakes in low; midday comes from higher up.
-        let height: Float = time == .sunset ? 1.6 : 5.0
-        entity.look(at: [0, 1, 0], from: [5.2, height, -1.0], relativeTo: nil)
-        return entity
     }
 
-    /// Warm lights at each flame.
-    ///
-    /// The desk candles are point lights, which in RealityKit cannot cast shadows
-    /// at all — there is no PointLightComponent.Shadow. The chandelier is a spot
-    /// light instead, pointed down, so at least one warm source throws shadows
-    /// across the room.
-    @MainActor
-    static func candles(for time: TimeOfDay) -> [Entity] {
-        guard time.candlesLit else { return [] }
-        let flame = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
-        var lights: [Entity] = []
+    func apply(_ state: LightingState, to scene: Entity) async {
+        await applySky(state, to: scene)
+        applySun(state)
+        applyCandles(state)
+    }
 
-        for (index, position) in candlePositions.enumerated() where index < 2 {
+    // MARK: - Window light
+
+    private func applySky(_ state: LightingState, to scene: Entity) async {
+        guard appliedSky != state.timeOfDay else { return }
+        appliedSky = state.timeOfDay
+
+        // UIImage(named:) is an asset-catalog lookup and will not find a loose
+        // bundle file, so resolve the URL. Never fatal: a missing sky should dim
+        // the room, not kill the app.
+        let name = state.timeOfDay.skyImageName
+        guard let url = Bundle.main.url(forResource: name, withExtension: "jpg"),
+              let image = UIImage(contentsOfFile: url.path),
+              let cgImage = image.cgImage else {
+            log.error("no sky image named \(name).jpg in the bundle")
+            return
+        }
+        do {
+            let resource = try await EnvironmentResource
+                .generate(fromEquirectangular: cgImage, withName: name)
+            let entity = iblEntity ?? Entity()
+            entity.name = "IBL"
+            entity.components.set(ImageBasedLightComponent(
+                source: .single(resource),
+                intensityExponent: state.timeOfDay.iblExponent))
+            if iblEntity == nil {
+                root.addChild(entity)
+                iblEntity = entity
+            }
+            scene.components.set(ImageBasedLightReceiverComponent(imageBasedLight: entity))
+            log.info("image-based light ready for \(state.timeOfDay.rawValue)")
+        } catch {
+            log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
+        }
+    }
+
+    // MARK: - Sun
+
+    private func applySun(_ state: LightingState) {
+        var light = DirectionalLightComponent()
+        // Fade with height rather than snapping on at sunrise. Moonlight is the floor.
+        let daylight = Float(state.daylight)
+        light.intensity = max(state.timeOfDay.moonIntensity,
+                              state.timeOfDay.sunIntensity * daylight)
+        let c = state.timeOfDay.sunColor
+        light.color = UIColor(red: CGFloat(c.r), green: CGFloat(c.g),
+                              blue: CGFloat(c.b), alpha: 1)
+        sun.components.set(light)
+
+        // Place the light on the room's own compass and look back at the middle.
+        let bearing = Float(state.sunBearingInRoom) * .pi / 180
+        let elevation = Float(max(state.sunElevation, 3.0)) * .pi / 180
+        let distance: Float = 30
+        let horizontal = distance * cos(elevation)
+        let position = SIMD3<Float>(horizontal * sin(bearing),
+                                    distance * sin(elevation),
+                                    -horizontal * cos(bearing))
+        sun.look(at: [0, 1.2, 0], from: position, relativeTo: nil)
+    }
+
+    // MARK: - Candles
+
+    private func applyCandles(_ state: LightingState) {
+        let lit = state.timeOfDay.candlesLit
+        guard appliedCandles != lit else { return }
+        appliedCandles = lit
+
+        candleEntities.forEach { $0.removeFromParent() }
+        candleEntities = []
+        guard lit else { return }
+
+        let flame = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
+
+        // Desk candles: point lights. RealityKit has no PointLightComponent.Shadow,
+        // so these cannot cast — they are fill, not key.
+        for (index, position) in Self.candlePositions.enumerated() where index < 2 {
             let entity = Entity()
             entity.name = "Candle\(index)"
             var light = PointLightComponent()
@@ -99,10 +137,13 @@ enum TowerLighting {
             light.color = flame
             entity.components.set(light)
             entity.position = position
-            lights.append(entity)
+            root.addChild(entity)
+            candleEntities.append(entity)
         }
 
-        if let hang = candlePositions.last {
+        // The chandelier is a spot light, which can cast, so the room gets at
+        // least one warm source throwing shadows.
+        if let hang = Self.candlePositions.last {
             let entity = Entity()
             entity.name = "Chandelier"
             var spot = SpotLightComponent()
@@ -115,8 +156,8 @@ enum TowerLighting {
             entity.components.set(SpotLightComponent.Shadow())
             entity.position = hang
             entity.look(at: [hang.x, 0, hang.z], from: hang, relativeTo: nil)
-            lights.append(entity)
+            root.addChild(entity)
+            candleEntities.append(entity)
         }
-        return lights
     }
 }

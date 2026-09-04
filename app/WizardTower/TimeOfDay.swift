@@ -46,4 +46,13 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
 
     /// Candles are lit when the daylight isn't doing the work.
     var candlesLit: Bool { self != .day }
+
+    /// Floor the sun never drops below, so night still has moonlight to shape by.
+    var moonIntensity: Float {
+        switch self {
+        case .day:    0
+        case .sunset: 60
+        case .night:  180
+        }
+    }
 }
