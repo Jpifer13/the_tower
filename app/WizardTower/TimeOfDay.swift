@@ -35,12 +35,20 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
         }
     }
 
-    /// How much the image-based light contributes. Night wants far less.
+    /// How much the image-based light contributes, as a power of two: 0 is the
+    /// full open-sky value, -3 is an eighth of it.
+    ///
+    /// This has to be pushed well down. Image-based lighting is **unoccluded** —
+    /// it lights every surface as though the sky were visible from all sides,
+    /// with no account taken of walls. A stone room with one window sees a small
+    /// fraction of the sky, so leaving this near 0 lights the place like an open
+    /// courtyard. Night goes lower still, because the moonlit HDRI has warm
+    /// street lamps in it and reads far brighter than moonlight should.
     var iblExponent: Float {
         switch self {
-        case .day:    0.0
-        case .sunset: -0.6
-        case .night:  -2.2
+        case .day:    -2.6
+        case .sunset: -3.6
+        case .night:  -5.4
         }
     }
 
@@ -48,11 +56,12 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
     var candlesLit: Bool { self != .day }
 
     /// Floor the sun never drops below, so night still has moonlight to shape by.
+    /// Directional, unlike the ambient, so it still throws shadows through the window.
     var moonIntensity: Float {
         switch self {
         case .day:    0
-        case .sunset: 60
-        case .night:  180
+        case .sunset: 90
+        case .night:  120
         }
     }
 }
