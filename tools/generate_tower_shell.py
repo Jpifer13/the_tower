@@ -831,7 +831,11 @@ def village_layout():
     rng = random.Random(7)
     plots = []
     taken = []          # axis-aligned footprints already used, in village space
-    roofs = [(4, 4), (4, 6), (4, 8), (6, 6), (6, 8), (6, 10)]
+    # Street rows: depth is capped at 6 m. Streets are 19 m apart, so two
+    # back-to-back rows of deeper houses simply cannot fit between them — which
+    # is why the first attempt rejected nearly everything it tried to place.
+    roofs = [(4, 4), (4, 6), (6, 4), (6, 6), (8, 6), (4, 4), (6, 6)]
+    infill_roofs = [(4, 4), (4, 6), (6, 4)]
 
     def free(cx, cz, hx, hz):
         """Reject overlaps, and keep every street corridor clear."""
@@ -871,14 +875,37 @@ def village_layout():
                     taken.append((cx, cz, hx, hz))
                     plots.append({
                         "vx": cx, "vz": cz, "w": w, "d": d,
-                        "storeys": rng.choice([2, 2, 2, 3, 1]),
-                        "yaw": yaw + rng.uniform(-2.5, 2.5),
+                        "storeys": rng.choice([2, 2, 3, 3, 3, 4, 1]),
+                        "yaw": yaw + rng.uniform(-2.0, 2.0),
                         "brick": rng.random() < 0.45,
                         "timber": rng.random() < 0.35,
                     })
-                    pos += along + rng.uniform(0.4, 1.6)   # terraced, not scattered
+                    # Terraced: near enough touching, as a walled town would be.
+                    pos += along + rng.uniform(0.1, 0.7)
                 else:
                     pos += 2.0
+
+    # Infill. Street frontages alone leave the blocks hollow, and everything
+    # square to the grid looks planned rather than grown. These sit at any angle
+    # in whatever space is left.
+    for _ in range(2500):
+        ang = rng.uniform(0, 2 * math.pi)
+        rad = math.sqrt(rng.random()) * (WALL_RADIUS - 7.0)
+        cx, cz = rad * math.sin(ang), rad * math.cos(ang)
+        w, d = rng.choice(infill_roofs)
+        yaw = rng.uniform(0, 360)
+        # Conservative half-extents, since the footprint is turned freely.
+        half = max(w, d) / 2.0
+        if not free(cx, cz, half, half):
+            continue
+        taken.append((cx, cz, half, half))
+        plots.append({
+            "vx": cx, "vz": cz, "w": w, "d": d,
+            "storeys": rng.choice([1, 2, 2, 3, 3]),
+            "yaw": yaw,
+            "brick": rng.random() < 0.5,
+            "timber": rng.random() < 0.4,
+        })
     return plots
 
 
@@ -1208,6 +1235,17 @@ def village():
         top = storeys * STOREY_H
         out.append(place(f"Roof_RoundTiles_{w}x{d}", 0.0, top, 0.0, 0.0))
         out.append(place("Prop_Chimney", hw - 1.0, top, hd - 1.4, 0.0))
+
+        # Dormers, balconies and vines: the kit has only one roof style, so
+        # variety has to come from what is hung on the buildings.
+        if storeys >= 2 and rng.random() < 0.45:
+            out.append(place("Roof_Dormer_RoundTile", rng.uniform(-hw + 1, hw - 1),
+                             top - 0.4, -hd + 0.3, 0.0))
+        if storeys >= 3 and rng.random() < 0.4:
+            out.append(place("Balcony_Simple_Straight",
+                             0.0, STOREY_H * (storeys - 1), -hd, 0.0))
+        if rng.random() < 0.3:
+            out.append(place("Prop_Support", -hw - 0.2, 0.0, -hd + 0.4, 0.0))
 
         # A little clutter against the street frontage.
         if rng.random() < 0.5:
