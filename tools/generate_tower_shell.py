@@ -1109,7 +1109,19 @@ STREETS = [
 ]
 
 
+_village_layout_cache = None
+
+
 def village_layout():
+    """Cached: the layout is deterministic, and it was being built twice per run
+    -- once to place the houses and once again only to count them."""
+    global _village_layout_cache
+    if _village_layout_cache is None:
+        _village_layout_cache = _build_village_layout()
+    return _village_layout_cache
+
+
+def _build_village_layout():
     """Houses lining the streets, rejected where they would overlap.
 
     Deterministic, so the village never reshuffles between runs.
@@ -1134,12 +1146,12 @@ def village_layout():
         if abs(cx) < SQUARE_HALF + hx and abs(cz) < SQUARE_HALF + hz:
             return False
         for axis, fixed, _ in STREETS:
-            width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.25
+            width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.15
             if axis == "x" and abs(cz - fixed) < width + hz:
                 return False
             if axis == "z" and abs(cx - fixed) < width + hx:
                 return False
-        gap = 0.12 if VILLAGE_STYLE == "prebuilt" else 0.5
+        gap = 0.08 if VILLAGE_STYLE == "prebuilt" else 0.5
         for ox, oz, ohx, ohz in taken:
             if abs(cx - ox) < hx + ohx + gap and abs(cz - oz) < hz + ohz + gap:
                 return False
@@ -1170,7 +1182,7 @@ def village_layout():
                 # Must exceed the clearance in free(), or every house rejects itself.
                 # A walled town builds tight to the street; the old 1.0 m
                 # left a verge nobody in the middle ages could afford.
-                setback = half_street + deep / 2.0 + 0.45
+                setback = half_street + deep / 2.0 + 0.30
                 if axis == "x":
                     cx, cz = pos + along / 2.0, fixed + side * setback
                     hx, hz = along / 2.0, deep / 2.0
@@ -1193,37 +1205,60 @@ def village_layout():
                     })
                     # Terraced: near enough touching, as a walled town would be.
                     # Near enough touching: these are terraces, not villas.
-                    pos += along + rng.uniform(0.05, 0.30)
+                    pos += along + rng.uniform(0.02, 0.18)
                 else:
                     pos += 2.0
 
-    # Infill. Street frontages alone leave the blocks hollow, and everything
-    # square to the grid looks planned rather than grown. These sit at any angle
-    # in whatever space is left.
-    for _ in range(7000):
-        ang = rng.uniform(0, 2 * math.pi)
-        rad = math.sqrt(rng.random()) * (WALL_RADIUS - 3.5)
-        cx, cz = rad * math.sin(ang), rad * math.cos(ang)
-        if VILLAGE_STYLE == "prebuilt":
-            model = rng.choice(HOUSE_PICKS)
-            mw, md = PACK_HOUSES[model][:2]
-            w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
-        else:
-            model = None
-            w, d = rng.choice(infill_roofs)
-        yaw = rng.uniform(0, 360)
-        # Conservative half-extents, since the footprint is turned freely.
-        half = max(w, d) / 2.0
-        if not free(cx, cz, half, half):
+    street_count = len(plots)
+
+    # Infill. Street frontages alone leave the blocks hollow, and with six
+    # streets crossing, the corridor clearances eat most of the frontage at every
+    # intersection -- 34 houses on 680 m of street.
+    #
+    # Throwing darts at random found 22 of these and 29 after tripling the
+    # attempts, which is how random packing behaves: the last gaps are the
+    # hardest to hit. Sweeping a lattice instead finds them all in one pass, and
+    # backland plots squared to the grid is what actually grew behind a medieval
+    # street anyway.
+    step = 1.0
+    limit = WALL_RADIUS - 3.5
+    cells = []
+    g = -limit
+    while g < limit:
+        h = -limit
+        while h < limit:
+            cells.append((g, h))
+            h += step
+        g += step
+    # Swept in order, not shuffled. Shuffling makes a lattice behave exactly like
+    # the random darts it replaced -- each placement blocks its neighbours and the
+    # gaps never close. Sweeping packs each row against the last.
+
+    for gx, gz in cells:
+        cx = gx + rng.uniform(-0.35, 0.35)
+        cz = gz + rng.uniform(-0.35, 0.35)
+        if math.hypot(cx, cz) > limit:
             continue
-        taken.append((cx, cz, half, half))
+        model = rng.choice(HOUSE_PICKS)
+        mw, md = PACK_HOUSES[model][:2]
+        w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
+        # Square to the grid, with a little slop: a plot squeezed in behind a
+        # street still lines up with its neighbours.
+        quarter = rng.choice([0.0, 90.0, 180.0, 270.0])
+        hx, hz = (w / 2.0, d / 2.0) if quarter % 180.0 == 0.0 else (d / 2.0, w / 2.0)
+        if not free(cx, cz, hx, hz):
+            continue
+        taken.append((cx, cz, hx, hz))
         plots.append({
             "vx": cx, "vz": cz, "w": w, "d": d, "model": model,
             "storeys": rng.choice([1, 2, 2, 3, 3]),
-            "yaw": yaw - VILLAGE_TURN,
+            "yaw": quarter - VILLAGE_TURN + rng.uniform(-3.0, 3.0),
             "brick": rng.random() < 0.5,
             "timber": rng.random() < 0.4,
         })
+
+    print(f"  plots: {street_count} on street frontages, "
+          f"{len(plots) - street_count} infill")
     return plots
 
 
@@ -1633,7 +1668,10 @@ def village_torches():
     posts = Mesh("TorchPosts", (0.14, 0.12, 0.10), texture="roof", tint=(0.26, 0.22, 0.18))
     heads = []
     y0 = -TOWER_ELEV
-    radius = WALL_RADIUS - WALL_THICK_V / 2.0 - 0.22
+    # Onto the wall walk, not over the drop. The inner face is the *smaller*
+    # radius, so setting a torch back into the stonework means adding to it;
+    # subtracting hung all twenty of them in mid-air above the town.
+    radius = WALL_RADIUS - WALL_THICK_V / 2.0 + 0.28
     count = max(8, int(2.0 * math.pi * WALL_RADIUS / TORCH_SPACING))
 
     for i in range(count):
