@@ -1003,6 +1003,35 @@ STOREY_H      = 3.12
 VILLAGE_BEARING = 50.0     # deg from the desk
 VILLAGE_DIST    = 46.0     # m from the tower
 VILLAGE_TURN    = -18.0    # deg the village is rotated, so streets are not square on
+
+# Whole buildings from the Quaternius Medieval Village Pack (CC0), used as one-off
+# landmarks. The pack has only four generic houses, which would repeat ten times
+# over 47 plots, but a mill and an inn do more for "this is a village" than any
+# number of houses -- and the modular kit cannot build either.
+#
+# The models are authored at roughly half scale (House_1 is 2.1 m wide, a shed),
+# hence LANDMARK_SCALE. `base` is each model's lowest point: the mill sits 1.7 m
+# below its own origin and would otherwise be buried.
+LANDMARK_SCALE  = 2.0
+# name, village x, village z, yaw, width, depth, base y
+LANDMARKS = [
+    ("Inn",        -15.0,  -8.5,    0.0, 4.03, 4.02, -0.006),
+    ("Blacksmith",  15.0,   7.8,  180.0, 3.89, 3.28, -0.004),
+    ("Stable",     -15.0,   7.85, 180.0, 4.70, 3.33, -0.023),
+    ("Sawmill",     15.0,  -7.8,    0.0, 4.40, 3.28, -0.052),
+    ("Mill",        -7.9,  20.0,   90.0, 3.40, 2.62, -1.679),
+    ("Bell_Tower",   6.2,  -6.2,    0.0, 1.94, 2.23,  0.000),
+    ("Well",         5.0,   5.0,    0.0, 0.67, 1.00, -0.252),
+]
+
+
+def landmark_footprint(entry):
+    """Half-extents in village space, so houses can be kept out of the way."""
+    _, _, _, yaw, w, d, _ = entry
+    w, d = w * LANDMARK_SCALE, d * LANDMARK_SCALE
+    if abs(yaw) % 180.0 == 90.0:
+        w, d = d, w
+    return w / 2.0, d / 2.0
 WALL_RADIUS     = 45.0     # m — hugs the built area; wider left a ring of empty grass
 WALL_HEIGHT_V   = 6.20     # m to the walkway
 WALL_THICK_V    = 1.30
@@ -1045,6 +1074,10 @@ def village_layout():
     rng = random.Random(7)
     plots = []
     taken = []          # axis-aligned footprints already used, in village space
+    # Landmarks claim their ground first, so the houses lay out around them.
+    for entry in LANDMARKS:
+        hx, hz = landmark_footprint(entry)
+        taken.append((entry[1], entry[2], hx, hz))
     # Street rows: depth is capped at 6 m. Streets are 19 m apart, so two
     # back-to-back rows of deeper houses simply cannot fit between them — which
     # is why the first attempt rejected nearly everything it tried to place.
@@ -1094,7 +1127,9 @@ def village_layout():
                     plots.append({
                         "vx": cx, "vz": cz, "w": w, "d": d,
                         "storeys": rng.choice([2, 2, 3, 3, 3, 4, 1]),
-                        "yaw": yaw + rng.uniform(-2.0, 2.0),
+                        # The village grid is turned, so a house built square
+                        # to it stands 18 degrees off the street it faces.
+                        "yaw": yaw - VILLAGE_TURN + rng.uniform(-2.0, 2.0),
                         "brick": rng.random() < 0.45,
                         "timber": rng.random() < 0.35,
                     })
@@ -1120,7 +1155,7 @@ def village_layout():
         plots.append({
             "vx": cx, "vz": cz, "w": w, "d": d,
             "storeys": rng.choice([1, 2, 2, 3, 3]),
-            "yaw": yaw,
+            "yaw": yaw - VILLAGE_TURN,
             "brick": rng.random() < 0.5,
             "timber": rng.random() < 0.4,
         })
@@ -1728,6 +1763,23 @@ def village():
     how = (f"batched into {baked} baked meshes" if MERGED and baked
            else "UNBATCHED -- run tools/merge_town.py")
     print(f"  town: {total} module placements in {len(placements)} buildings, {how}")
+    # The landmarks are whole buildings, so they are plain references: nothing to
+    # assemble, and RealityKit shares one mesh between every use of a model.
+    for name, vx, vz, yaw, _w, _d, base in LANDMARKS:
+        wx, wz = village_to_world(vx, vz)
+        out.append(f'''    def "Landmark_{name}" (
+        prepend references = @houses/{name}.usdc@
+    )
+    {{
+        double3 xformOp:translate = ({wx:.3f}, '''
+                   f'''{ground_y - base * LANDMARK_SCALE:.3f}, {wz:.3f})
+        float3 xformOp:rotateXYZ = (0, {yaw - VILLAGE_TURN:.1f}, 0)
+        float3 xformOp:scale = ({LANDMARK_SCALE}, {LANDMARK_SCALE}, {LANDMARK_SCALE})
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }}
+''')
+    print(f"  landmarks: {', '.join(l[0] for l in LANDMARKS)}")
+
     lit = sum(len(g.pts) for g in glows) // 4
     print(f"  windows lit: {lit}")
     panes = "".join(g.material_usda() + g.usda() for g in glows if g.pts)

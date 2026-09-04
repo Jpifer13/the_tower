@@ -20,7 +20,7 @@ KITS = {
     "village": ("assets/source/Medieval Village MegaKit[Standard]/glTF", "village"),
     # Whole buildings rather than a kit of parts. This pack ships FBX/OBJ/Blend
     # and no glTF, which is why the importer below dispatches on extension.
-    "houses": ("assets/source/quaternius-medieval-village-pack", "houses"),
+    "houses": ("assets/source/Medieval Village Pack - Dec 2020", "houses"),
 }
 KIT = os.environ.get("TOWER_KIT", "props")
 SRC = Path(KITS[KIT][0])
