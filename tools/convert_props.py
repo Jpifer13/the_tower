@@ -13,9 +13,16 @@ import bpy, sys, os
 from pathlib import Path
 
 ROOT = Path(bpy.path.abspath("//")) if bpy.data.filepath else Path.cwd()
-SRC = Path("assets/source/quaternius-fantasy-props/Exports/glTF")
+# Two kits so far: the fantasy props, and the modular village used for the view
+# through the window. TOWER_KIT picks which.
+KITS = {
+    "props": ("assets/source/quaternius-fantasy-props/Exports/glTF", "props"),
+    "village": ("assets/source/Medieval Village MegaKit[Standard]/glTF", "village"),
+}
+KIT = os.environ.get("TOWER_KIT", "props")
+SRC = Path(KITS[KIT][0])
 OUT = Path("app/Packages/RealityKitContent/Sources/RealityKitContent/"
-           "RealityKitContent.rkassets/props")
+           "RealityKitContent.rkassets") / KITS[KIT][1]
 
 SHORTLIST = [
     "Table_Large", "Chair_1", "Stool", "Bookcase_2", "Shelf_Arch",

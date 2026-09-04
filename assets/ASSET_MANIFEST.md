@@ -34,7 +34,7 @@ Each set is Diffuse + nor_gl + Rough as 2K JPG, in `RealityKitContent.rkassets/t
 
 | T-100 | Fire flipbooks 4K/8K 6x6 | (superseded) | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⏸ unused |
 | T-101 | Kenney Particle Pack — flame_02 | hearth fire particles | kenney.nl | $0 | CC0 | `licenses/kenney-particle-pack/` | ✅ |
-| M-200 | Quaternius Medieval Village MegaKit (176 models) | exterior buildings | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ⏳ unused |
+| M-200 | Quaternius Medieval Village MegaKit (13 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
 
 ## Audio
 

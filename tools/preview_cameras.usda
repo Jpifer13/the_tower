@@ -75,6 +75,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Down among the houses, to check they are assembled correctly.
+    def Camera "VillageCheck"
+    {
+        float focalLength = 24
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-12, -40, 0)
+        double3 xformOp:translate = (6.0, -14.0, 12.0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Seated, looking at the desk and the props on it.
     def Camera "AtDesk"
     {

@@ -775,16 +775,26 @@ def tower_shaft():
     return m.material_usda() + m.usda()
 
 
-# Buildings below, in the cone visible through the window. These are what give
-# parallax at eye level: the shaft is almost directly underfoot and only shows if
-# you lean out, while the skydome sits at infinity and never shifts at all.
-# (angle deg, distance m, width, depth, wall height, roof height, yaw deg)
-NEIGHBOURS = [
-    (34.0, 21.0, 7.0, 9.0, 6.5, 3.0, 18.0),
-    (48.0, 33.0, 9.0, 7.0, 8.0, 3.6, -25.0),
-    (61.0, 26.0, 6.0, 6.0, 5.5, 2.6, 40.0),
-    (72.0, 44.0, 11.0, 8.0, 7.0, 3.2, 8.0),
-    (44.0, 57.0, 8.0, 8.0, 9.0, 3.4, -12.0),
+# The village below, seen through the window. This is what gives parallax at eye
+# level: the shaft is almost underfoot and only shows if you lean out, and the
+# skydome sits at infinity and never shifts.
+#
+# The Medieval Village kit is modular — walls, corners and roofs on a 2 m grid,
+# with no whole buildings — so houses are assembled here rather than placed.
+#   wall panel                2.00 m wide x 3.12 m tall
+#   Roof_RoundTiles_WxD       covers a W x D metre building, overhang included
+WALL_MODULE_W = 2.00
+STOREY_H      = 3.12
+
+# (angle deg from the desk, distance m, width, depth, storeys, yaw deg, brick?)
+VILLAGE = [
+    (34.0, 22.0, 6, 8, 2,  14.0, False),
+    (49.0, 31.0, 6, 6, 2, -28.0, True),
+    (62.0, 25.0, 4, 6, 1,  40.0, False),
+    (71.0, 40.0, 8, 8, 2,   6.0, True),
+    (44.0, 52.0, 6, 8, 2, -16.0, False),
+    (28.0, 37.0, 4, 6, 1, -35.0, True),
+    (57.0, 63.0, 6, 6, 2,  22.0, False),
 ]
 
 
@@ -927,48 +937,75 @@ def ground():
     return m.material_usda() + m.usda()
 
 
-def neighbourhood():
-    """A few roofs below the window, for parallax at eye level."""
-    walls = Mesh("Roofs_Walls", (0.44, 0.42, 0.39), texture=WALL_TEXTURE, tint=(0.62, 0.66, 0.74))
-    roofs = Mesh("Roofs_Tops", (0.32, 0.22, 0.16), texture="roof", tint=(0.55, 0.40, 0.32))
+def village():
+    """Houses assembled from the modular kit, in the window's view cone."""
+    out = []
+    ground_y = -TOWER_ELEV
+    counter = [0]
 
-    for ang, dist, w, d, h, rh, yaw in NEIGHBOURS:
+    for index, (ang, dist, w, d, storeys, yaw, brick) in enumerate(VILLAGE):
         t = math.radians(ang)
         cx = dist * math.sin(t)
         cz = -dist * math.cos(t) - SEAT_Z
-        base = -TOWER_ELEV
         ry = math.radians(yaw)
-        ca, sa = math.cos(ry), math.sin(ry)
+        cos_y, sin_y = math.cos(ry), math.sin(ry)
 
-        def pt(dx, dz, y):
-            return (cx + dx * ca - dz * sa, y, cz + dx * sa + dz * ca)
+        def place(name, lx, ly, lz, local_yaw):
+            """House-local position, turned by the house's own yaw."""
+            counter[0] += 1
+            wx = cx + lx * cos_y + lz * sin_y
+            wz = cz - lx * sin_y + lz * cos_y
+            return (f'    def "V{index}_{counter[0]}" (\n'
+                    f'        prepend references = @village/{name}.usdc@\n'
+                    f'    )\n'
+                    f'    {{\n'
+                    f'        double3 xformOp:translate = '
+                    f'({wx:.3f}, {ground_y + ly:.3f}, {wz:.3f})\n'
+                    f'        float3 xformOp:rotateXYZ = (0, {yaw + local_yaw:.1f}, 0)\n'
+                    f'        uniform token[] xformOpOrder = '
+                    f'["xformOp:translate", "xformOp:rotateXYZ"]\n'
+                    f'    }}\n')
 
+        # Closed shutters fill the window openings. Without them you see straight
+        # through a house and out the far side, which reads as a hollow shell.
+        shutter = "WindowShutters_Wide_Round_Closed"
+        wall = "Wall_UnevenBrick_Straight" if brick else "Wall_Plaster_Straight"
+        window = ("Wall_UnevenBrick_Window_Wide_Round" if brick
+                  else "Wall_Plaster_Window_Wide_Round")
+        corner = "Corner_Exterior_Brick" if brick else "Corner_Exterior_Wood"
         hw, hd = w / 2.0, d / 2.0
-        top = base + h
-        # Four walls
-        for (x0, z0), (x1, z1), nx, nz in (
-                ((-hw, -hd), (hw, -hd), 0.0, -1.0), ((hw, -hd), (hw, hd), 1.0, 0.0),
-                ((hw, hd), (-hw, hd), 0.0, 1.0), ((-hw, hd), (-hw, -hd), -1.0, 0.0)):
-            nrm = (nx * ca - nz * sa, 0.0, nx * sa + nz * ca)
-            span = math.hypot(x1 - x0, z1 - z0)
-            walls.face([pt(x0, z0, base), pt(x1, z1, base), pt(x1, z1, top), pt(x0, z0, top)],
-                       nrm, [(0.0, 0.0), (span / TILE, 0.0),
-                             (span / TILE, h / TILE), (0.0, h / TILE)])
-        # Gabled roof, ridge running along x
-        apex_a, apex_b = pt(-hw, 0.0, top + rh), pt(hw, 0.0, top + rh)
-        slope = math.hypot(hd, rh)
-        for sgn in (-1.0, 1.0):
-            e0, e1 = pt(-hw, sgn * hd, top), pt(hw, sgn * hd, top)
-            nrm = (-sa * 0.0 + 0.0, rh / slope, sgn * hd / slope)
-            nrm = (nrm[2] * -sa, nrm[1], nrm[2] * ca)
-            roofs.face([e0, e1, apex_b, apex_a], nrm,
-                       [(0.0, 0.0), (w / TILE, 0.0), (w / TILE, slope / TILE), (0.0, slope / TILE)])
-        # Gable ends
-        for sx in (-hw, hw):
-            roofs.face([pt(sx, -hd, top), pt(sx, hd, top), pt(sx, 0.0, top + rh)],
-                       (ca if sx > 0 else -ca, 0.0, sa if sx > 0 else -sa),
-                       [(0.0, 0.0), (d / TILE, 0.0), (d / 2.0 / TILE, rh / TILE)])
-    return walls.material_usda() + walls.usda() + roofs.material_usda() + roofs.usda()
+        across, deep = int(w / WALL_MODULE_W), int(d / WALL_MODULE_W)
+
+        for storey in range(storeys):
+            ly = storey * STOREY_H
+            for i in range(across):
+                lx = -hw + WALL_MODULE_W * (i + 0.5)
+                # A door in the middle of the ground floor, windows upstairs.
+                if storey == 0:
+                    front = "Wall_Plaster_Door_Round" if (i == across // 2 and not brick) else wall
+                else:
+                    front = window
+                out.append(place(front, lx, ly, -hd, 0.0))
+                if front == window:
+                    out.append(place(shutter, lx, ly, -hd, 0.0))
+                out.append(place(window if storey else wall, lx, ly, hd, 180.0))
+                if storey:
+                    out.append(place(shutter, lx, ly, hd, 180.0))
+            for i in range(deep):
+                lz = -hd + WALL_MODULE_W * (i + 0.5)
+                out.append(place(window if storey else wall, -hw, ly, lz, 90.0))
+                out.append(place(window if storey else wall, hw, ly, lz, 270.0))
+                if storey:
+                    out.append(place(shutter, -hw, ly, lz, 90.0))
+                    out.append(place(shutter, hw, ly, lz, 270.0))
+            for sx, sz in ((-hw, -hd), (hw, -hd), (hw, hd), (-hw, hd)):
+                out.append(place(corner, sx, ly, sz, 0.0))
+
+        top = storeys * STOREY_H
+        out.append(place(f"Roof_RoundTiles_{w}x{d}", 0.0, top, 0.0, 0.0))
+        out.append(place("Prop_Chimney", hw - 1.0, top, hd - 1.4, 0.0))
+
+    return "".join(out)
 
 
 def roof_structure():
@@ -1042,7 +1079,7 @@ def main():
     shaft = tower_shaft()
     hearth = fireplace()
     orb = orb_and_pedestal()
-    hood = neighbourhood()
+    hood = village()
     grnd = ground()
     prp = props()
     cnd = candles()
@@ -1083,7 +1120,8 @@ def Xform "TowerShell"
     print(f"  candles: {len(CANDLES)} props, "
           f"{sum(len(c[5]) for c in CANDLES)} flames")
     print(f"  props: {len(PROPS)} placed" + ("" if SHOW_AIDS else "; blockout aids off (TOWER_AIDS=1 to show)"))
-    print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
+    print(f"  village: {len(VILLAGE)} houses, "
+          f"{min(v[1] for v in VILLAGE):.0f}-{max(v[1] for v in VILLAGE):.0f} m out")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
           f"{(R + WALL_THICK) * SHAFT_BATTER * 2:.1f} m across at the base")
 
