@@ -57,3 +57,18 @@ Cameras: `Seated`, `AtDesk`, `RoomWide`, `AtWindow`, `WindowWide`, `LeanOut`,
 
 **These renders are not proof of correctness.** Storm draws both face windings and
 any colour space happily. RealityKit does not.
+
+## `merge_town.py`
+
+Bakes each village building into a single mesh, cutting the town from ~2,400
+entities to 53. Run through Blender, after any change to the village layout:
+
+```
+python3 tools/generate_tower_shell.py          # writes build/town_placements.json
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+    --python tools/merge_town.py
+python3 tools/generate_tower_shell.py          # now references the baked meshes
+```
+
+The generator prints which mode it used. `village/merged/` is gitignored, so on a
+fresh clone the town renders unbatched until this is run.

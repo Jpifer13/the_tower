@@ -117,3 +117,43 @@ Every bug here looked like it had been fixed. An edit that did not apply, a flag
 that did nothing, a face that rendered fine offline. **Verify numerically, not by
 eye** — dump the geometry and assert on it, measure pixels rather than judging
 colour, assert that string replacements matched before trusting them.
+
+## 10. RealityKit does not expand a USD `PointInstancer`
+
+The obvious way to batch ~2,400 repeated village modules is a `PointInstancer`
+per module type: one prim carrying `positions`, `orientations` and `protoIndices`,
+pointing at a prototype. `usdcat` accepts it, `realitytool compile` accepts it,
+and `usdrecord` renders the town correctly.
+
+RealityKit ignores it. Measured on visionOS 26.5 by walking the loaded entity
+tree: all 21 instancer prims were present, but they produced only 19 mesh
+entities, with combined bounds of ±5.7 m centred on the origin — the prototypes,
+loaded once each, with every placement discarded. The whole village would have
+collapsed into a heap in the middle of the study.
+
+This is the same trap as `doubleSided` and the Display P3 textures: the offline
+tools are more permissive than RealityKit, so *an offline render proves nothing*.
+The check that actually settled it was numeric, from inside the running app:
+
+```swift
+// count mesh entities under the town prims, and their world bounds
+let b = e.visualBounds(relativeTo: nil)
+```
+
+Batching therefore has to happen ahead of time. `tools/merge_town.py` joins each
+building into a single mesh in Blender — see
+[`../decisions/DECISIONS.md`](../decisions/DECISIONS.md) for why it is per
+building rather than per module type.
+
+## 11. Blender's glTF importer duplicates materials and UV sets on every import
+
+Importing 20 kit modules separately gives 20 private copies of every shared
+material (`MI_Plaster`, `MI_Plaster.001`, …) and UV layers whose names can
+differ per import. Joining the objects preserves all of them, so a merged
+building ends up with 12 material subsets where 7 would do, plus two identical
+UV sets — extra draw calls and file size for nothing.
+
+Fold them together *before* joining: rename every `uv_layers` entry to a single
+name, and remap each material slot to the first material sharing its base name
+(`re.sub(r"\.\d+$", "", name)`). On this town that cut 12 subsets per house to 7
+and the baked output from 72 MB to 63 MB.

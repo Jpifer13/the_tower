@@ -11,6 +11,7 @@ this and is safe to hand-edit.
     python3 tools/generate_tower_shell.py
 """
 import math
+import json
 import os
 import random
 from pathlib import Path
@@ -82,6 +83,16 @@ SEAT_SETBACK  = 0.30   # m you sit back from the desk edge
 # Useful while sizing the room, in the way once there is real furniture.
 #   TOWER_AIDS=1 python3 tools/generate_tower_shell.py
 SHOW_AIDS     = os.environ.get("TOWER_AIDS", "0") == "1"
+
+# The town is ~2500 module placements. As plain references that is 2500 entities
+# and as many draw calls, which is CPU work the M5's GPU gains do not help with.
+# A PointInstancer per module type collapses each into one. Set TOWER_INSTANCED=0
+# to fall back to plain references if anything looks wrong.
+# RealityKit does NOT expand a USD PointInstancer: measured on visionOS 26.5, it
+# loads the prototype subtree and throws the placements away, so the whole town
+# collapses to one pile at the origin. Batching has to be done by merging
+# geometry ahead of time instead -- see tools/merge_town.py.
+MERGED        = os.environ.get("TOWER_MERGED", "1") == "1"
 
 # Wall look. Tint multiplies the albedo, so darkness and warmth can be dialled without
 # re-downloading a texture: (1,1,1) is untouched, lower = darker, blue-biased = cooler.
@@ -834,7 +845,7 @@ def village_layout():
     # Street rows: depth is capped at 6 m. Streets are 19 m apart, so two
     # back-to-back rows of deeper houses simply cannot fit between them — which
     # is why the first attempt rejected nearly everything it tried to place.
-    roofs = [(4, 4), (4, 6), (6, 4), (6, 6), (8, 6), (4, 4), (6, 6)]
+    roofs = [(4, 4), (4, 6), (6, 4), (6, 6), (6, 4), (4, 4), (6, 6)]
     infill_roofs = [(4, 4), (4, 6), (6, 4)]
 
     def free(cx, cz, hx, hz):
@@ -1170,6 +1181,7 @@ def village_lamps():
 def village():
     """Houses assembled from the modular kit, lining the streets."""
     out = []
+    placements = {}
     ground_y = -TOWER_ELEV
     counter = [0]
     rng = random.Random(11)
@@ -1181,20 +1193,18 @@ def village():
         ry = math.radians(yaw)
         cos_y, sin_y = math.cos(ry), math.sin(ry)
 
-        def place(name, lx, ly, lz, local_yaw):
+        group = f"House{index:02d}"
+
+        def place(name, lx, ly, lz, local_yaw, group=group):
+            # Positions are baked to world space here but grouped per building,
+            # so tools/merge_town.py can join each house into a single mesh.
             counter[0] += 1
             wx = cx + lx * cos_y + lz * sin_y
             wz = cz - lx * sin_y + lz * cos_y
-            return (f'    def "V{index}_{counter[0]}" (\n'
-                    f'        prepend references = @village/{name}.usdc@\n'
-                    f'    )\n'
-                    f'    {{\n'
-                    f'        double3 xformOp:translate = '
-                    f'({wx:.3f}, {ground_y + ly:.3f}, {wz:.3f})\n'
-                    f'        float3 xformOp:rotateXYZ = (0, {yaw + local_yaw:.1f}, 0)\n'
-                    f'        uniform token[] xformOpOrder = '
-                    f'["xformOp:translate", "xformOp:rotateXYZ"]\n'
-                    f'    }}\n')
+            placements.setdefault(group, []).append(
+                [name, round(wx, 4), round(ground_y + ly, 4), round(wz, 4),
+                 round(yaw + local_yaw, 2)])
+            return ""
 
         brick = plot["brick"]
         wall = "Wall_UnevenBrick_Straight" if brick else "Wall_Plaster_Straight"
@@ -1255,6 +1265,48 @@ def village():
             out.append(place("Prop_WoodenFence_Single", -hw - 0.6, 0.0,
                              rng.uniform(-hd, hd), 90.0))
 
+    with open(Path(__file__).parent.parent / "build" / "town_placements.json", "w") as fh:
+        json.dump(placements, fh)
+    total = sum(len(v) for v in placements.values())
+    baked = sum(1 for g in placements
+                if (OUT.parent / "village" / "merged" / f"{g}.usdc").exists())
+    how = (f"batched into {baked} baked meshes" if MERGED and baked
+           else "UNBATCHED -- run tools/merge_town.py")
+    print(f"  town: {total} module placements in {len(placements)} buildings, {how}")
+    return "".join(out) + emit_placements(placements)
+
+
+def emit_placements(placements):
+    """One Xform per building.
+
+    Each holds either the individual kit modules, or -- once tools/merge_town.py
+    has baked them -- a single merged mesh. Merging trades about 30 MB of
+    duplicated vertices for a 40x cut in draw calls, and keeping one Xform per
+    building means the renderer can still frustum-cull the town a house at a time.
+    """
+    merged_dir = OUT.parent / "village" / "merged"
+    out = []
+    for group, rows in sorted(placements.items()):
+        merged = merged_dir / f"{group}.usdc"
+        out.append(f'    def Xform "Town_{group}"\n    {{\n')
+        if MERGED and merged.exists():
+            out.append(f'        def "Baked" (\n'
+                       f'            prepend references = '
+                       f'@village/merged/{group}.usdc@\n'
+                       f'        )\n        {{\n        }}\n')
+        else:
+            for i, (name, x, y, z, yaw) in enumerate(rows):
+                out.append(f'        def "M{i}" (\n'
+                           f'            prepend references = @village/{name}.usdc@\n'
+                           f'        )\n'
+                           f'        {{\n'
+                           f'            double3 xformOp:translate = '
+                           f'({x:.3f}, {y:.3f}, {z:.3f})\n'
+                           f'            float3 xformOp:rotateXYZ = (0, {yaw:.1f}, 0)\n'
+                           f'            uniform token[] xformOpOrder = '
+                           f'["xformOp:translate", "xformOp:rotateXYZ"]\n'
+                           f'        }}\n')
+        out.append('    }\n')
     return "".join(out)
 
 

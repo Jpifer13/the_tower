@@ -107,3 +107,38 @@ able to have a dark room, candles that read as sources, or a fire worth lighting
 - **Date:** —
 - **Verdict:** —
 - **Notes:** —
+
+---
+
+## 2026-09-03 — Batch the town by baking one mesh per building
+
+**Context:** The village is ~2,400 placements of 20 modular kit pieces. That is
+~2,400 entities and at least as many draw calls, which is CPU work a faster GPU
+does not help with — the first thing to suspect if the frame rate suffers.
+
+**Rejected:** a USD `PointInstancer` per module type. RealityKit does not expand
+them; it loads the prototype and throws the placements away, dumping the town at
+the origin. Verified numerically in the simulator, not by eye — see
+[`../learning-notes/realitykit-geometry-gotchas.md`](../learning-notes/realitykit-geometry-gotchas.md).
+
+**Decision:** Bake ahead of time with `tools/merge_town.py`, joining each
+building into one mesh — **per building, not per module type.**
+
+**Why per building:** merging by module type would give ~20 meshes but each would
+span the whole 86 m town, so nothing could ever be frustum-culled and the entire
+village would be rasterised whenever any part of it was on screen. One mesh per
+building keeps a cullable unit per house and still collapses the town to 53
+entities and 355 submeshes.
+
+**Cost:** shared kit geometry becomes per-building copies — 19 k unique vertices
+become ~990 k, about 63 MB of baked `.usdc`. Triangle count is unchanged; only
+the sharing is lost. Acceptable against the 55 MB just saved by dropping the kit
+textures to 1K.
+
+**Consequences:**
+- `village/merged/` is gitignored — it is regenerated, and would otherwise add
+  63 MB to history every time the village layout changes.
+- The generator falls back to unbatched references when the bake is absent, and
+  prints which mode it used, so a missing bake degrades rather than breaks.
+- **Re-run `tools/merge_town.py` after any change to the village layout**, or the
+  town silently keeps the old baked geometry.

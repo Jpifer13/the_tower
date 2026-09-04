@@ -32,9 +32,13 @@ metres already; the only fix needed was Z-up → Y-up.
 
 Each set is Diffuse + nor_gl + Rough as 2K JPG, in `RealityKitContent.rkassets/textures/`.
 
+Kit textures (props and village) are downscaled to 1K by `tools/shrink_textures.sh`:
+81 MB of source PNGs become 26 MB, which is invisible on a village seen through a
+window 46 m away.
+
 | T-100 | Fire flipbooks 4K/8K 6x6 | (superseded) | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⏸ unused |
 | T-101 | Kenney Particle Pack — flame_02 | hearth fire particles | kenney.nl | $0 | CC0 | `licenses/kenney-particle-pack/` | ✅ |
-| M-200 | Quaternius Medieval Village MegaKit (13 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
+| M-200 | Quaternius Medieval Village MegaKit (28 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
 
 ## Audio
 
