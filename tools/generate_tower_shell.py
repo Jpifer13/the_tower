@@ -987,7 +987,14 @@ def village_layout():
     return plots
 
 
-GROUND_RADIUS = 130.0
+GROUND_RADIUS = 137.0
+# The horizon: the flat ground disc used to end in a hard circular cut against
+# the skydome. A ring of hills hides that join and gives the eye somewhere to
+# stop. Starts beyond the village, which reaches about 89 m from the tower.
+HILL_IN, HILL_OUT = 102.0, 138.0
+HILL_NEAR = 11.0   # m, rolling foreground hills
+HILL_FAR  = 34.0   # m, the range behind them
+HILL_BASE = 7.0    # m, so the outer rim never drops back to flat
 
 
 # Converted Quaternius props (CC0). Placed user-relative: origin is the seat,
@@ -1100,6 +1107,91 @@ def props():
     }}
 ''')
     return "".join(out)
+
+
+def _ridge(t, *waves):
+    """Sum of sines, 0..1.
+
+    Every frequency is an integer multiple of theta so the ridge line closes on
+    itself: any other frequency leaves a visible seam where the ring wraps.
+    """
+    total = 0.0
+    scale = 0.0
+    for n, amp, phase in waves:
+        total += amp * math.sin(n * t + phase)
+        scale += amp
+    return (total / scale + 1.0) * 0.5
+
+
+def hill_height(r, t):
+    """Height of the horizon ring at radius r, bearing t."""
+    if r <= HILL_IN:
+        return 0.0
+    u = min((r - HILL_IN) / (HILL_OUT - HILL_IN), 1.0)
+
+    def smooth(a, b, x):
+        if b == a:
+            return 0.0 if x < a else 1.0
+        k = min(max((x - a) / (b - a), 0.0), 1.0)
+        return k * k * (3.0 - 2.0 * k)
+
+    near = _ridge(t, (3, 0.55, 0.7), (7, 0.33, 2.1), (13, 0.20, 4.3),
+                  (23, 0.11, 1.2), (37, 0.06, 2.8), (53, 0.035, 0.9))
+    far = _ridge(t, (2, 0.60, 1.9), (5, 0.30, 0.4), (11, 0.18, 3.3),
+                 (19, 0.09, 5.1), (29, 0.05, 2.2))
+
+    # Where each range *starts* varies with bearing too. Without this every
+    # slope begins at the same radius and the whole thing reads as a ring
+    # around the tower rather than as country going on past it.
+    near_at = 0.02 + 0.15 * _ridge(t, (2, 0.6, 3.1), (5, 0.3, 1.4))
+    far_at = 0.28 + 0.20 * _ridge(t, (3, 0.5, 2.2), (7, 0.25, 5.0))
+
+    return (0.10
+            + HILL_NEAR * smooth(near_at, near_at + 0.30, u) * near
+            + smooth(far_at, far_at + 0.52, u) * (HILL_BASE + HILL_FAR * far))
+
+
+def hills():
+    """A ring of hills and a range behind them, closing off the horizon.
+
+    Seen from the tower the eye is about 27 m above the plain, so the near hills
+    stay below the horizon and only the far peaks break the skyline -- which is
+    what makes it read as distance rather than as a wall.
+    """
+    m = Mesh("Hills", (0.30, 0.33, 0.26), texture="ground", tint=(0.62, 0.70, 0.62))
+    y0 = -TOWER_ELEV
+    cz = -SEAT_Z
+    segs, rings = 180, 26
+    TILE_H = 17.0
+
+    def gp(r, t):
+        return (r * math.sin(t), y0 + hill_height(r, t), -r * math.cos(t) + cz)
+
+    def normal(r, t):
+        # Finite differences: the height is a sum of sines and a smoothstep, so
+        # differentiating it by hand is more error than it is worth.
+        e = 0.6
+        dr = (hill_height(r + e, t) - hill_height(r - e, t)) / (2.0 * e)
+        da = e / max(r, 1.0)
+        dt = (hill_height(r, t + da) - hill_height(r, t - da)) / (2.0 * e)
+        rx, rz = math.sin(t), -math.cos(t)      # radial unit vector
+        tx, tz = math.cos(t), math.sin(t)       # tangential unit vector
+        nx = -dr * rx - dt * tx
+        nz = -dr * rz - dt * tz
+        n = math.sqrt(nx * nx + 1.0 + nz * nz)
+        return (nx / n, 1.0 / n, nz / n)
+
+    for iy in range(rings):
+        # Denser rings toward the outside, where the peaks and the silhouette are.
+        r0 = HILL_IN + (HILL_OUT - HILL_IN) * (iy / rings) ** 0.85
+        r1 = HILL_IN + (HILL_OUT - HILL_IN) * ((iy + 1) / rings) ** 0.85
+        for ix in range(segs):
+            t0 = 2.0 * math.pi * ix / segs
+            t1 = 2.0 * math.pi * (ix + 1) / segs
+            quad = [gp(r0, t0), gp(r0, t1), gp(r1, t1), gp(r1, t0)]
+            nrm = [normal(r0, t0), normal(r0, t1), normal(r1, t1), normal(r1, t0)]
+            m.face(quad, nrm, [(q[0] / TILE_H, q[2] / TILE_H) for q in quad])
+    return m.material_usda() + m.usda()
 
 
 def ground():
@@ -1505,7 +1597,7 @@ def main():
     hearth = fireplace()
     orb = orb_and_pedestal()
     hood = village() + village_streets() + village_wall() + village_lamps()
-    grnd = ground()
+    grnd = ground() + hills()
     prp = props()
     cnd = candles()
 
