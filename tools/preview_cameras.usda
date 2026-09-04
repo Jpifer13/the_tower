@@ -80,8 +80,18 @@ def Xform "Preview"
     {
         float focalLength = 24
         float horizontalAperture = 36
-        float3 xformOp:rotateXYZ = (-12, -40, 0)
-        double3 xformOp:translate = (6.0, -14.0, 12.0)
+        float3 xformOp:rotateXYZ = (-3, -72.0, 0)
+        double3 xformOp:translate = (14.3, -24.2, -19.8)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
+    # High above the village, to check the whole plan.
+    def Camera "VillageAbove"
+    {
+        float focalLength = 20
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-45, 0, 0)
+        double3 xformOp:translate = (35.2, 20.0, 19.4)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 

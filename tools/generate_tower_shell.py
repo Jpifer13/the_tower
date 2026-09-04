@@ -12,6 +12,7 @@ this and is safe to hand-edit.
 """
 import math
 import os
+import random
 from pathlib import Path
 
 # ── Dimensions (docs/design/design-doc.md) ───────────────────────────────────
@@ -786,16 +787,68 @@ def tower_shaft():
 WALL_MODULE_W = 2.00
 STOREY_H      = 3.12
 
-# (angle deg from the desk, distance m, width, depth, storeys, yaw deg, brick?)
-VILLAGE = [
-    (34.0, 22.0, 6, 8, 2,  14.0, False),
-    (49.0, 31.0, 6, 6, 2, -28.0, True),
-    (62.0, 25.0, 4, 6, 1,  40.0, False),
-    (71.0, 40.0, 8, 8, 2,   6.0, True),
-    (44.0, 52.0, 6, 8, 2, -16.0, False),
-    (28.0, 37.0, 4, 6, 1, -35.0, True),
-    (57.0, 63.0, 6, 6, 2,  22.0, False),
-]
+# The village sits in its own local frame, then gets placed in the window's view
+# cone. Local +X runs along the main street, +Z crosses it.
+VILLAGE_BEARING = 50.0     # deg from the desk
+VILLAGE_DIST    = 46.0     # m from the tower
+VILLAGE_TURN    = -18.0    # deg the village is rotated, so streets are not square on
+WALL_RADIUS     = 54.0     # m, the curtain wall
+WALL_HEIGHT_V   = 6.20     # m to the walkway
+WALL_THICK_V    = 1.30
+MERLON_H        = 1.10
+GATE_HALF_ANGLE = 7.0      # deg of wall left open for the road
+STREET_W        = 7.0      # main street
+LANE_W          = 5.5      # cross lane
+
+
+def village_to_world(vx, vz):
+    """Village-local metres into the room's user-relative frame, on the ground."""
+    t = math.radians(VILLAGE_TURN)
+    rx = vx * math.cos(t) - vz * math.sin(t)
+    rz = vx * math.sin(t) + vz * math.cos(t)
+    b = math.radians(VILLAGE_BEARING)
+    cx = VILLAGE_DIST * math.sin(b)
+    cz = -VILLAGE_DIST * math.cos(b) - SEAT_Z
+    return (cx + rx, cz + rz)
+
+
+def village_layout():
+    """Houses lining the streets. Deterministic, so the village never reshuffles."""
+    rng = random.Random(7)
+    plots = []
+    roofs = [(4, 4), (4, 6), (4, 8), (6, 6), (6, 8), (6, 10)]
+
+    def row(along, fixed, axis, facing, span, gap_at=None):
+        """Fill one side of a street with houses, leaving a gap for the crossing."""
+        pos = -span
+        while pos < span:
+            w, d = rng.choice(roofs)
+            depth = d if axis == "x" else w
+            if gap_at is not None and abs(pos) < gap_at:
+                pos += 6.0
+                continue
+            if axis == "x":
+                vx, vz = pos + w / 2.0, fixed + (depth / 2.0) * (1 if facing < 0 else -1)
+            else:
+                vx, vz = fixed + (depth / 2.0) * (1 if facing < 0 else -1), pos + w / 2.0
+            plots.append({
+                "vx": vx, "vz": vz, "w": w, "d": d,
+                "storeys": rng.choice([1, 2, 2, 2, 3]),
+                "yaw": (0.0 if axis == "x" else 90.0) + (0 if facing < 0 else 180)
+                       + rng.uniform(-4, 4),
+                "brick": rng.random() < 0.45,
+                "timber": rng.random() < 0.35,
+            })
+            pos += w + rng.uniform(1.2, 3.0)
+        _ = along
+
+    half = STREET_W / 2.0
+    lane = LANE_W / 2.0
+    row(None, -half, "x", -1, 36.0, gap_at=lane + 3)
+    row(None, half, "x", 1, 36.0, gap_at=lane + 3)
+    row(None, -lane, "z", -1, 26.0, gap_at=half + 3)
+    row(None, lane, "z", 1, 26.0, gap_at=half + 3)
+    return plots
 
 
 GROUND_RADIUS = 130.0
@@ -937,21 +990,140 @@ def ground():
     return m.material_usda() + m.usda()
 
 
+def village_streets():
+    """Cobbled main street and cross lane, laid a little above the ground so they
+    do not z-fight with it."""
+    m = Mesh("Streets", (0.42, 0.40, 0.38), texture="street")
+    y = -TOWER_ELEV + 0.02
+    TILE_S = 4.0
+
+    def strip(x0, x1, z0, z1):
+        corners = [(x0, z0), (x1, z0), (x1, z1), (x0, z1)]
+        pts, uvs = [], []
+        for vx, vz in corners:
+            wx, wz = village_to_world(vx, vz)
+            pts.append((wx, y, wz))
+            uvs.append((vx / TILE_S, vz / TILE_S))
+        m.face(pts, (0.0, 1.0, 0.0), uvs)
+
+    strip(-42.0, 42.0, -STREET_W / 2, STREET_W / 2)
+    strip(-LANE_W / 2, LANE_W / 2, -30.0, -STREET_W / 2)
+    strip(-LANE_W / 2, LANE_W / 2, STREET_W / 2, 30.0)
+    return m.material_usda() + m.usda()
+
+
+def village_wall():
+    """The curtain wall: a crenellated stone ring with a gate on the main street.
+
+    Generated rather than assembled — it is architecture, like the tower, and a
+    kit wall panel repeated two hundred times would cost far more than this does.
+    """
+    m = Mesh("VillageWall", (0.44, 0.43, 0.41), texture=WALL_TEXTURE, tint=WALL_TINT)
+    y0 = -TOWER_ELEV
+    segments = 160
+    r_in = WALL_RADIUS - WALL_THICK_V / 2.0
+    r_out = WALL_RADIUS + WALL_THICK_V / 2.0
+    step = 360.0 / segments
+    circumference = 2.0 * math.pi * WALL_RADIUS
+    wraps = max(1, round(circumference / 3.0))
+
+    def wp(theta_deg, radius, y):
+        t = math.radians(theta_deg)
+        wx, wz = village_to_world(radius * math.sin(t), -radius * math.cos(t))
+        return (wx, y0 + y, wz)
+
+    for i in range(segments):
+        a0, a1 = i * step, (i + 1) * step
+        mid = (a0 + a1) / 2.0
+        # The gate: the main street leaves through local +X, i.e. 90 degrees.
+        if abs(((mid - 90.0 + 180) % 360) - 180) < GATE_HALF_ANGLE:
+            continue
+        u0, u1 = a0 / 360.0 * wraps, a1 / 360.0 * wraps
+        t = math.radians(mid)
+        n_out = (math.sin(t), 0.0, -math.cos(t))
+        n_in = (-math.sin(t), 0.0, math.cos(t))
+        vh = WALL_HEIGHT_V / 3.0
+
+        m.face([wp(a0, r_out, 0), wp(a1, r_out, 0),
+                wp(a1, r_out, WALL_HEIGHT_V), wp(a0, r_out, WALL_HEIGHT_V)], n_out,
+               [(u0, 0), (u1, 0), (u1, vh), (u0, vh)])
+        m.face([wp(a0, r_in, 0), wp(a1, r_in, 0),
+                wp(a1, r_in, WALL_HEIGHT_V), wp(a0, r_in, WALL_HEIGHT_V)], n_in,
+               [(u0, 0), (u1, 0), (u1, vh), (u0, vh)])
+        m.face([wp(a0, r_in, WALL_HEIGHT_V), wp(a1, r_in, WALL_HEIGHT_V),
+                wp(a1, r_out, WALL_HEIGHT_V), wp(a0, r_out, WALL_HEIGHT_V)],
+               (0.0, 1.0, 0.0), [(u0, 0), (u1, 0), (u1, 0.4), (u0, 0.4)])
+
+        # Merlons: every other pair of segments carries one.
+        if i % 4 < 2:
+            top = WALL_HEIGHT_V + MERLON_H
+            for radius, nrm in ((r_out, n_out), (r_in, n_in)):
+                m.face([wp(a0, radius, WALL_HEIGHT_V), wp(a1, radius, WALL_HEIGHT_V),
+                        wp(a1, radius, top), wp(a0, radius, top)], nrm,
+                       [(u0, 0), (u1, 0), (u1, 0.4), (u0, 0.4)])
+            m.face([wp(a0, r_in, top), wp(a1, r_in, top),
+                    wp(a1, r_out, top), wp(a0, r_out, top)], (0.0, 1.0, 0.0),
+                   [(u0, 0), (u1, 0), (u1, 0.4), (u0, 0.4)])
+            if i % 4 == 0:      # the face left exposed by the gap beside it
+                m.face([wp(a0, r_in, WALL_HEIGHT_V), wp(a0, r_out, WALL_HEIGHT_V),
+                        wp(a0, r_out, top), wp(a0, r_in, top)],
+                       (math.cos(t), 0.0, math.sin(t)),
+                       [(0, 0), (0.4, 0), (0.4, 0.4), (0, 0.4)])
+    return m.material_usda() + m.usda()
+
+
+def village_lamps():
+    """Street lamps. Emissive only — thirty more point lights would cost far more
+    than they are worth for something forty metres away behind glass."""
+    posts = Mesh("LampPosts", (0.16, 0.15, 0.14), texture="roof", tint=(0.30, 0.28, 0.26))
+    glows = []
+    y0 = -TOWER_ELEV
+    spots = []
+    for x in range(-36, 40, 9):
+        spots.append((float(x), -STREET_W / 2 - 0.9))
+        spots.append((float(x), STREET_W / 2 + 0.9))
+    for z in range(-26, 30, 9):
+        spots.append((-LANE_W / 2 - 0.9, float(z)))
+
+    for index, (vx, vz) in enumerate(spots):
+        wx, wz = village_to_world(vx, vz)
+        for lo, hi, half in ((0.0, 3.1, 0.07), (3.1, 3.35, 0.16)):
+            for sx, sz in ((-1, -1), (1, -1), (1, 1), (-1, 1)):
+                pass
+        # Simple square post, then a glowing head.
+        for face_i in range(4):
+            ang = math.radians(face_i * 90)
+            nx, nz = math.sin(ang), math.cos(ang)
+            tx, tz = math.cos(ang), -math.sin(ang)
+            hwv = 0.07
+            corners = [
+                (wx + nx * hwv + tx * hwv, y0, wz + nz * hwv + tz * hwv),
+                (wx + nx * hwv - tx * hwv, y0, wz + nz * hwv - tz * hwv),
+                (wx + nx * hwv - tx * hwv, y0 + 3.1, wz + nz * hwv - tz * hwv),
+                (wx + nx * hwv + tx * hwv, y0 + 3.1, wz + nz * hwv + tz * hwv)]
+            posts.face(corners, (nx, 0.0, nz), [(0, 0), (0.1, 0), (0.1, 1.5), (0, 1.5)])
+        head = Mesh(f"Lamp_{index}", (1.0, 0.80, 0.45),
+                    translate=(wx, y0 + 3.32, wz))
+        sphere(head, (0.0, 0.0, 0.0), 0.15, 8, 6)
+        glows.append(head.material_usda() + head.usda())
+    return posts.material_usda() + posts.usda() + "".join(glows)
+
+
 def village():
-    """Houses assembled from the modular kit, in the window's view cone."""
+    """Houses assembled from the modular kit, lining the streets."""
     out = []
     ground_y = -TOWER_ELEV
     counter = [0]
+    rng = random.Random(11)
 
-    for index, (ang, dist, w, d, storeys, yaw, brick) in enumerate(VILLAGE):
-        t = math.radians(ang)
-        cx = dist * math.sin(t)
-        cz = -dist * math.cos(t) - SEAT_Z
+    for index, plot in enumerate(village_layout()):
+        w, d, storeys = plot["w"], plot["d"], plot["storeys"]
+        yaw = plot["yaw"]
+        cx, cz = village_to_world(plot["vx"], plot["vz"])
         ry = math.radians(yaw)
         cos_y, sin_y = math.cos(ry), math.sin(ry)
 
         def place(name, lx, ly, lz, local_yaw):
-            """House-local position, turned by the house's own yaw."""
             counter[0] += 1
             wx = cx + lx * cos_y + lz * sin_y
             wz = cz - lx * sin_y + lz * cos_y
@@ -966,13 +1138,14 @@ def village():
                     f'["xformOp:translate", "xformOp:rotateXYZ"]\n'
                     f'    }}\n')
 
-        # Closed shutters fill the window openings. Without them you see straight
-        # through a house and out the far side, which reads as a hollow shell.
-        shutter = "WindowShutters_Wide_Round_Closed"
+        brick = plot["brick"]
         wall = "Wall_UnevenBrick_Straight" if brick else "Wall_Plaster_Straight"
+        if plot["timber"] and not brick:
+            wall = "Wall_Plaster_WoodGrid"
         window = ("Wall_UnevenBrick_Window_Wide_Round" if brick
                   else "Wall_Plaster_Window_Wide_Round")
         corner = "Corner_Exterior_Brick" if brick else "Corner_Exterior_Wood"
+        shutter = "WindowShutters_Wide_Round_Closed"
         hw, hd = w / 2.0, d / 2.0
         across, deep = int(w / WALL_MODULE_W), int(d / WALL_MODULE_W)
 
@@ -980,9 +1153,9 @@ def village():
             ly = storey * STOREY_H
             for i in range(across):
                 lx = -hw + WALL_MODULE_W * (i + 0.5)
-                # A door in the middle of the ground floor, windows upstairs.
                 if storey == 0:
-                    front = "Wall_Plaster_Door_Round" if (i == across // 2 and not brick) else wall
+                    front = ("Wall_Plaster_Door_Round"
+                             if (i == across // 2 and not brick) else wall)
                 else:
                     front = window
                 out.append(place(front, lx, ly, -hd, 0.0))
@@ -1004,6 +1177,14 @@ def village():
         top = storeys * STOREY_H
         out.append(place(f"Roof_RoundTiles_{w}x{d}", 0.0, top, 0.0, 0.0))
         out.append(place("Prop_Chimney", hw - 1.0, top, hd - 1.4, 0.0))
+
+        # A little clutter against the street frontage.
+        if rng.random() < 0.5:
+            out.append(place(rng.choice(["Prop_Crate", "Prop_Wagon"]),
+                             rng.uniform(-hw, hw), 0.0, -hd - 1.6, rng.uniform(0, 360)))
+        if rng.random() < 0.35:
+            out.append(place("Prop_WoodenFence_Single", -hw - 0.6, 0.0,
+                             rng.uniform(-hd, hd), 90.0))
 
     return "".join(out)
 
@@ -1079,7 +1260,7 @@ def main():
     shaft = tower_shaft()
     hearth = fireplace()
     orb = orb_and_pedestal()
-    hood = village()
+    hood = village() + village_streets() + village_wall() + village_lamps()
     grnd = ground()
     prp = props()
     cnd = candles()
@@ -1120,8 +1301,7 @@ def Xform "TowerShell"
     print(f"  candles: {len(CANDLES)} props, "
           f"{sum(len(c[5]) for c in CANDLES)} flames")
     print(f"  props: {len(PROPS)} placed" + ("" if SHOW_AIDS else "; blockout aids off (TOWER_AIDS=1 to show)"))
-    print(f"  village: {len(VILLAGE)} houses, "
-          f"{min(v[1] for v in VILLAGE):.0f}-{max(v[1] for v in VILLAGE):.0f} m out")
+    print(f"  village: {len(village_layout())} houses inside a {WALL_RADIUS:.0f} m wall")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
           f"{(R + WALL_THICK) * SHAFT_BATTER * 2:.1f} m across at the base")
 
