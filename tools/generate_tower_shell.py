@@ -111,8 +111,12 @@ class Mesh:
     flipped = 0
     flip_by_mesh = {}
 
-    def __init__(self, name, color, texture=None, tint=(1.0, 1.0, 1.0)):
+    def __init__(self, name, color, texture=None, tint=(1.0, 1.0, 1.0), translate=None):
         self.name, self.color, self.texture, self.tint = name, color, texture, tint
+        # Geometry is normally authored in world space, so the prim needs no
+        # transform. Anything Swift attaches a *component* to needs one, because a
+        # light lands on the entity's origin, not on its vertices.
+        self.translate = translate
         self.pts, self.counts, self.idx, self.normals, self.uvs = [], [], [], [], []
 
     def face(self, verts, normal, uvs=None):
@@ -324,6 +328,11 @@ class Mesh:
         if not self.pts:
             return ""
         xs = [v[0] for v in self.pts]; ys = [v[1] for v in self.pts]; zs = [v[2] for v in self.pts]
+        xform = ""
+        if self.translate is not None:
+            tx, ty, tz = self.translate
+            xform = (f'    double3 xformOp:translate = ({tx:.4f}, {ty:.4f}, {tz:.4f})\n'
+                     f'        uniform token[] xformOpOrder = ["xformOp:translate"]\n    ')
         f = lambda seq: ", ".join(f"({a:.4f}, {b:.4f}, {c:.4f})" for a, b, c in seq)
         i = indent
         return f'''{i}def Mesh "{self.name}"
@@ -340,7 +349,7 @@ class Mesh:
 {i}    color3f[] primvars:displayColor = [({self.color[0]}, {self.color[1]}, {self.color[2]})]
 {i}    rel material:binding = </TowerShell/{self.name}Mat>
 {i}    uniform token subdivisionScheme = "none"
-{i}}}
+{i}{xform}}}
 '''
 
 
@@ -663,8 +672,10 @@ def candles():
 ''')
         for dx, dy, dz in offsets:
             centre = (x + dx, y + dy, z + dz)
-            flame = Mesh(f"Flame_{index}", (1.0, 0.78, 0.42))
-            sphere(flame, centre, FLAME_RADIUS, 8, 6)
+            # Built around the local origin with the position on the prim, so the
+            # light Swift attaches lands on the flame rather than at (0, 0, 0).
+            flame = Mesh(f"Flame_{index}", (1.0, 0.78, 0.42), translate=centre)
+            sphere(flame, (0.0, 0.0, 0.0), FLAME_RADIUS, 8, 6)
             out.append(flame.material_usda() + flame.usda())
             index += 1
 

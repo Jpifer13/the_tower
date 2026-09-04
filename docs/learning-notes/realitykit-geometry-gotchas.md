@@ -97,6 +97,20 @@ Anything that should block light needs a surface facing the light — the roof g
 an outer skin, exactly as the wall did. Worth checking whenever something is lit
 from a direction it should not be.
 
+## 9. A component lands on the entity's origin, not on its vertices
+
+Generated geometry is naturally authored in world space — a mesh whose vertices
+are already where they belong needs no transform. That is fine until Swift
+attaches a **component** to it.
+
+Every flame's sphere sat correctly above its candle, but each prim had no
+transform, so the entity's origin was (0, 0, 0). Attaching a `PointLightComponent`
+put all ten lights in a stack **under the chair**, which lit the room from one
+point and looked like a lighting bug rather than a positioning one.
+
+Anything Swift will attach a component to, or measure the position of, needs the
+position on the **prim** and geometry built around the local origin.
+
 ## The pattern worth remembering
 
 Every bug here looked like it had been fixed. An edit that did not apply, a flag
