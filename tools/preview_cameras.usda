@@ -84,6 +84,16 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 
+    # Leaning out of the window, looking down the shaft. The parallax test.
+    def Camera "LeanOut"
+    {
+        float focalLength = 15
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-68, -55, 0)
+        double3 xformOp:translate = (4.15, 1.70, 0.24)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # From outside the tower, looking back at the window opening.
     def Camera "Outside"
     {
@@ -99,8 +109,8 @@ def Xform "Preview"
     {
         float focalLength = 20
         float horizontalAperture = 36
-        float3 xformOp:rotateXYZ = (-2, -66, 0)
-        double3 xformOp:translate = (0.9, 1.65, 2.0)
+        float3 xformOp:rotateXYZ = (-16, -60, 0)
+        double3 xformOp:translate = (2.2, 1.70, 1.35)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
 

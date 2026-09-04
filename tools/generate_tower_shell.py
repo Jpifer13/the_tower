@@ -38,6 +38,9 @@ SKY_TEXTURE   = os.environ.get("TOWER_SKY", "sky_day")
 # How high the room sits above the ground. Drops the skydome by the same amount so
 # you look *down* on the landscape, which is the whole point of being up a tower.
 TOWER_ELEV    = 26.0
+# The shaft below the room. Slightly battered — wider at the base — which is both
+# how towers are actually built and what makes it read as tall when you look down.
+SHAFT_BATTER  = 1.14
 WINDOW_SILL   = 0.40   # m
 WINDOW_HEAD   = 3.60   # m — raised with the wall; a 2.6 m head looked stubby at 18 ft
 
@@ -441,6 +444,125 @@ def skydome():
     return m.material_usda() + m.usda()
 
 
+def tower_shaft():
+    """The tower continuing down below the room, to the ground far below.
+
+    This is the near half of the hybrid decision: the skydome sits at infinity and
+    never shifts, so the shaft is what actually gives parallax when you lean out
+    and look down.
+    """
+    m = Mesh("Shaft", (0.44, 0.43, 0.41), texture=WALL_TEXTURE, tint=WALL_TINT)
+    r_top = R + WALL_THICK
+    r_bot = r_top * SHAFT_BATTER
+    rings = 12
+    circumference = 2.0 * math.pi * r_top
+    wraps = max(1, round(circumference / TILE))
+    step = 360.0 / SEGMENTS
+
+    def sp(theta_deg, frac):
+        """frac 0 at the room floor, 1 at the ground."""
+        t = math.radians(theta_deg)
+        rr = r_top + (r_bot - r_top) * frac
+        y = -TOWER_ELEV * frac
+        return (rr * math.sin(t), y, -rr * math.cos(t) - SEAT_Z)
+
+    for iy in range(rings):
+        f0, f1 = iy / rings, (iy + 1) / rings
+        v0, v1 = -f0 * TOWER_ELEV / TILE, -f1 * TOWER_ELEV / TILE
+        for sgm in range(SEGMENTS):
+            a, b = sgm * step, (sgm + 1) * step
+            ua, ub = a / 360.0 * wraps, b / 360.0 * wraps
+            t = math.radians((a + b) / 2.0)
+            nrm = (math.sin(t), 0.0, -math.cos(t))
+            m.face([sp(b, f0), sp(a, f0), sp(a, f1), sp(b, f1)], nrm,
+                   [(ub, v0), (ua, v0), (ua, v1), (ub, v1)])
+    return m.material_usda() + m.usda()
+
+
+# Buildings below, in the cone visible through the window. These are what give
+# parallax at eye level: the shaft is almost directly underfoot and only shows if
+# you lean out, while the skydome sits at infinity and never shifts at all.
+# (angle deg, distance m, width, depth, wall height, roof height, yaw deg)
+NEIGHBOURS = [
+    (34.0, 21.0, 7.0, 9.0, 6.5, 3.0, 18.0),
+    (48.0, 33.0, 9.0, 7.0, 8.0, 3.6, -25.0),
+    (61.0, 26.0, 6.0, 6.0, 5.5, 2.6, 40.0),
+    (72.0, 44.0, 11.0, 8.0, 7.0, 3.2, 8.0),
+    (44.0, 57.0, 8.0, 8.0, 9.0, 3.4, -12.0),
+]
+
+
+GROUND_RADIUS = 130.0
+
+
+def ground():
+    """Ground for the neighbours to stand on. Without it the buildings hover in
+    front of the skydome image with nothing under them."""
+    m = Mesh("Ground", (0.32, 0.34, 0.24), texture="ground")
+    y = -TOWER_ELEV
+    cz = -SEAT_Z
+    rings, segs = 10, 72
+    TILE_G = 14.0    # ground tiles much larger than interior surfaces
+    for iy in range(rings):
+        r0 = GROUND_RADIUS * (iy / rings) ** 1.6
+        r1 = GROUND_RADIUS * ((iy + 1) / rings) ** 1.6
+        for ix in range(segs):
+            t0 = 2.0 * math.pi * ix / segs
+            t1 = 2.0 * math.pi * (ix + 1) / segs
+
+            def gp(r, t):
+                return (r * math.sin(t), y, -r * math.cos(t) + cz)
+
+            quad = [gp(r0, t0), gp(r0, t1), gp(r1, t1), gp(r1, t0)]
+            m.face(quad, (0.0, 1.0, 0.0),
+                   [(q[0] / TILE_G, q[2] / TILE_G) for q in quad])
+    return m.material_usda() + m.usda()
+
+
+def neighbourhood():
+    """A few roofs below the window, for parallax at eye level."""
+    walls = Mesh("Roofs_Walls", (0.44, 0.42, 0.39), texture=WALL_TEXTURE, tint=(0.62, 0.66, 0.74))
+    roofs = Mesh("Roofs_Tops", (0.32, 0.22, 0.16), texture="roof", tint=(0.55, 0.40, 0.32))
+
+    for ang, dist, w, d, h, rh, yaw in NEIGHBOURS:
+        t = math.radians(ang)
+        cx = dist * math.sin(t)
+        cz = -dist * math.cos(t) - SEAT_Z
+        base = -TOWER_ELEV
+        ry = math.radians(yaw)
+        ca, sa = math.cos(ry), math.sin(ry)
+
+        def pt(dx, dz, y):
+            return (cx + dx * ca - dz * sa, y, cz + dx * sa + dz * ca)
+
+        hw, hd = w / 2.0, d / 2.0
+        top = base + h
+        # Four walls
+        for (x0, z0), (x1, z1), nx, nz in (
+                ((-hw, -hd), (hw, -hd), 0.0, -1.0), ((hw, -hd), (hw, hd), 1.0, 0.0),
+                ((hw, hd), (-hw, hd), 0.0, 1.0), ((-hw, hd), (-hw, -hd), -1.0, 0.0)):
+            nrm = (nx * ca - nz * sa, 0.0, nx * sa + nz * ca)
+            span = math.hypot(x1 - x0, z1 - z0)
+            walls.face([pt(x0, z0, base), pt(x1, z1, base), pt(x1, z1, top), pt(x0, z0, top)],
+                       nrm, [(0.0, 0.0), (span / TILE, 0.0),
+                             (span / TILE, h / TILE), (0.0, h / TILE)])
+        # Gabled roof, ridge running along x
+        apex_a, apex_b = pt(-hw, 0.0, top + rh), pt(hw, 0.0, top + rh)
+        slope = math.hypot(hd, rh)
+        for sgn in (-1.0, 1.0):
+            e0, e1 = pt(-hw, sgn * hd, top), pt(hw, sgn * hd, top)
+            nrm = (-sa * 0.0 + 0.0, rh / slope, sgn * hd / slope)
+            nrm = (nrm[2] * -sa, nrm[1], nrm[2] * ca)
+            roofs.face([e0, e1, apex_b, apex_a], nrm,
+                       [(0.0, 0.0), (w / TILE, 0.0), (w / TILE, slope / TILE), (0.0, slope / TILE)])
+        # Gable ends
+        for sx in (-hw, hw):
+            roofs.face([pt(sx, -hd, top), pt(sx, hd, top), pt(sx, 0.0, top + rh)],
+                       (ca if sx > 0 else -ca, 0.0, sa if sx > 0 else -sa),
+                       [(0.0, 0.0), (d / TILE, 0.0), (d / 2.0 / TILE, rh / TILE)])
+    return walls.material_usda() + walls.usda() + roofs.material_usda() + roofs.usda()
+
+
 def roof_structure():
     """Wall plate where the cone lands, and a boss at the apex for the lantern.
 
@@ -512,6 +634,9 @@ def main():
 
     beams = roof_structure()
     sky = skydome()
+    shaft = tower_shaft()
+    hood = neighbourhood()
+    grnd = ground()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(f'''#usda 1.0
@@ -528,7 +653,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{sky}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{shaft}{grnd}{hood}{sky}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -540,6 +665,9 @@ def Xform "TowerShell"
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
     print(f"  roof: wall plate + apex boss (no rafters)")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
+    print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
+    print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
+          f"{(R + WALL_THICK) * SHAFT_BATTER * 2:.1f} m across at the base")
 
 
 if __name__ == "__main__":
