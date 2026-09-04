@@ -32,7 +32,8 @@ metres already; the only fix needed was Z-up → Y-up.
 
 Each set is Diffuse + nor_gl + Rough as 2K JPG, in `RealityKitContent.rkassets/textures/`.
 
-| T-100 | Fire flipbook 4K 6x6 (no smoke) | hearth particles | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⚠ |
+| T-100 | Fire flipbooks 4K/8K 6x6 | (superseded) | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⏸ unused |
+| T-101 | Kenney Particle Pack — flame_02 | hearth fire particles | kenney.nl | $0 | CC0 | `licenses/kenney-particle-pack/` | ✅ |
 | M-200 | Quaternius Medieval Village MegaKit (176 models) | exterior buildings | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ⏳ unused |
 
 ## Audio

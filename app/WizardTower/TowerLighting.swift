@@ -39,14 +39,7 @@ final class LightRig {
     private static let orbIntensity: Float = 5200
 
     /// Grid of the fire flipbook. Must match the sheet, or frames slide instead of
-    /// animating. Ours is CampFire_l_nosmoke_front_Loop_01_4K_6x6 — a 6x6 grid.
-    private static let flipbookRows = 6
-    private static let flipbookColumns = 6
-    /// How long the sheet's loop runs. 36 frames at roughly 24 fps.
-    private static let flipbookLoopSeconds = 1.5
     /// One particle lives for many loops, so a respawn is rare rather than every
-    /// few seconds.
-    private static let flipbookLifeSpan = 90.0
 
     /// Loads a sprite sheet from the bundle, or nil if none has been added.
     private static func flipbook(named name: String) -> TextureResource? {
@@ -103,73 +96,57 @@ final class LightRig {
         guard fireParticles == nil,
               let fire = Self.findNamed(prefix: "Fire_", in: scene).first else { return }
 
-        // A billboard is centred on its particle, so emitting at the coals put half
-        // the flame under the hearth. Lift the emitter by half the flame's height.
-        let flameSize: Float = 0.62
+        // Sits just above the coals; the particles rise from there.
         let riser = Entity()
         riser.name = "FireParticles"
-        riser.position = [0, flameSize * 0.5 - 0.06, 0]
+        riser.position = [0, 0.02, 0]
         fire.addChild(riser)
 
-        // This sheet is a whole campfire loop, not a single puff of flame. Sprite
-        // sheets come in two kinds and they need opposite treatment: a one-flame
-        // sheet is spawned many times and drifts, a full-fire loop is shown *once*
-        // as a single billboard. Emitting 14 a second of this one gave a cloud of
-        // overlapping campfires rising through the room.
-        //
-        // So: one stationary, long-lived particle that loops the animation.
+        // Many small flames rather than one big billboard. A single sprite spawned
+        // dozens of times, with the emitter doing the animating — drift, spread,
+        // rotation, staggered lifespans — builds volume that no single 2D card can.
+        // The flipbook attempt failed because a whole-campfire sheet can only be
+        // shown once, so it could never be more than a flat picture of a fire.
         var emitter = ParticleEmitterComponent()
-        emitter.emitterShape = .point
+        emitter.emitterShape = .box
+        emitter.emitterShapeSize = [0.30, 0.03, 0.18]   // the grate bed
         emitter.birthDirection = .local
         emitter.emissionDirection = [0, 1, 0]
-        emitter.speed = 0
-        emitter.speedVariation = 0
+        emitter.speed = 0.22
+        emitter.speedVariation = 0.12
 
         var flame = ParticleEmitterComponent.ParticleEmitter()
-        // Spawning is stochastic, so "one on average" leaves visible gaps between
-        // one dying and the next appearing. A burst gives one immediately, and a
-        // long life means a respawn is a rare event rather than every few seconds.
-        emitter.burstCount = 1
-        flame.lifeSpan = Self.flipbookLifeSpan
-        flame.lifeSpanVariation = 0
-        flame.birthRate = Float(1.0 / Self.flipbookLifeSpan)
-        flame.birthRateVariation = 0
-        flame.size = flameSize               // a hearth fire, not a candle
-        flame.sizeVariation = 0
-        flame.acceleration = [0, 0, 0]       // it sits in the grate
-        flame.dampingFactor = 0
-        flame.spreadingAngle = 0
-        flame.angle = 0
-        flame.angleVariation = 0
-        flame.blendMode = .alpha             // the sheet has its own alpha
+        flame.birthRate = 55
+        flame.birthRateVariation = 15
+        flame.lifeSpan = 1.1
+        flame.lifeSpanVariation = 0.4
+        flame.size = 0.17
+        flame.sizeVariation = 0.07
+        flame.acceleration = [0, 0.55, 0]      // convection
+        flame.dampingFactor = 1.6
+        flame.spreadingAngle = 0.35
+        flame.angleVariation = .pi             // random roll, so no two look alike
+        flame.blendMode = .additive            // fire adds light and never occludes
         flame.billboardMode = .billboard
-        flame.isLightingEnabled = false      // it is the source, not lit
-        flame.opacityCurve = .constant       // no fade: it must not pulse
-        flame.color = .constant(.single(UIColor(red: 1.0, green: 0.95, blue: 0.88, alpha: 1)))
+        flame.isLightingEnabled = false        // it is the source, not lit
+        flame.opacityCurve = .gradualFadeInOut // no popping in or out
+        // The sprite is white, so the colour ramp does the work: hot at the base,
+        // cooling to red as it rises.
+        flame.color = .evolving(
+            start: .single(UIColor(red: 1.0, green: 0.85, blue: 0.45, alpha: 1)),
+            end: .single(UIColor(red: 0.90, green: 0.20, blue: 0.04, alpha: 1)))
 
-        if let sheet = Self.flipbook(named: "fire_flipbook") {
-            flame.image = sheet
-            var sequence = ParticleEmitterComponent.ParticleEmitter.ImageSequence()
-            sequence.rowCount = Self.flipbookRows
-            sequence.columnCount = Self.flipbookColumns
-            // 36 frames over the loop's length, so it plays at its intended speed.
-            sequence.frameRate = Float(Self.flipbookRows * Self.flipbookColumns)
-                / Float(Self.flipbookLoopSeconds)
-            sequence.frameRateVariation = 0
-            sequence.initialFrame = 0
-            sequence.initialFrameVariation = 0
-            sequence.animationMode = .looping
-            flame.imageSequence = sequence
-            log.info("fire flipbook loaded, \(Self.flipbookRows)x\(Self.flipbookColumns)")
+        if let sprite = Self.flipbook(named: "fire_particle") {
+            flame.image = sprite
+            log.info("fire sprite loaded")
         } else {
-            log.info("no fire flipbook — the hearth will show untextured particles")
+            log.info("no fire sprite — the hearth will show untextured particles")
         }
         emitter.mainEmitter = flame
 
         riser.components.set(emitter)
         fireParticles = riser
     }
-
 
     /// The orb on its pedestal. A point light, so it throws in every direction as
     /// a floating light should — which does mean no shadows, since RealityKit has
