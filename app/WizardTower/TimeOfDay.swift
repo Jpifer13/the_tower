@@ -46,8 +46,8 @@ enum TimeOfDay: String, CaseIterable, Identifiable {
     /// street lamps in it and reads far brighter than moonlight should.
     var iblExponent: Float {
         switch self {
-        case .day:    -2.6
-        case .sunset: -3.6
+        case .day:    -1.5
+        case .sunset: -2.7
         case .night:  -4.5
         }
     }

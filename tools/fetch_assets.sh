@@ -43,21 +43,16 @@ fi
 fetch_tex floor dark_wooden_planks
 fetch_tex roof  brown_planks_03
 
-echo "==> Skydome textures (tone-mapped from the HDRIs)"
-# The window needs something to look at. RealityKit wants an LDR texture for an
-# unlit skydome, so the HDRIs are converted rather than used directly.
-for pair in "kloofendal_38d_partly_cloudy:sky_day" "rogland_sunset:sky_sunset" \
-            "rogland_moonlit_night:sky_night"; do
-  src="assets/hdri/${pair%%:*}-4k.hdr"; dst="$RK/${pair##*:}.jpg"
-  [ -f "$dst" ] && { echo "    ${pair##*:} already present"; continue; }
-  [ -f "$src" ] || { echo "    !! missing $src"; continue; }
-  # RealityKit needs sRGB: sips defaults HDR conversions to Display P3, and the
-  # skydome then fails to load, leaving passthrough showing through the window.
-  sips -s format jpeg "$src" --out /tmp/_sky_a.jpg >/dev/null 2>&1
-  sips -Z 2048 /tmp/_sky_a.jpg --out /tmp/_sky_b.jpg >/dev/null 2>&1
-  sips --matchTo "$SRGB" /tmp/_sky_b.jpg --out "$dst" >/dev/null 2>&1
-  rm -f /tmp/_sky_a.jpg /tmp/_sky_b.jpg
-  echo "    ${pair##*:}"
-done
+echo "==> Skydome textures"
+# Deliberately NOT done here. `sips -s format jpeg` auto-exposes each HDR on its
+# own, which normalises every sky to the same average brightness -- the moonlit
+# night came out brighter than midday (mean 133 vs 106) and the window showed a
+# daylit horizon at 2am. Exposure has to be set per sky and held, which needs
+# real pixel maths:
+#
+#     /Applications/Blender.app/Contents/MacOS/Blender --background \
+#         --python tools/convert_skies.py
+#
+echo "    run tools/convert_skies.py through Blender (see the note above)"
 
 echo "Done. Licences: assets/licenses/  Manifest: assets/ASSET_MANIFEST.md"
