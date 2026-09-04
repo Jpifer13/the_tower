@@ -42,6 +42,10 @@ final class LightRig {
     /// animating. Ours is CampFire_l_nosmoke_front_Loop_01_4K_6x6 — a 6x6 grid.
     private static let flipbookRows = 6
     private static let flipbookColumns = 6
+    /// How long the sheet's loop runs. 36 frames at roughly 24 fps.
+    private static let flipbookLoopSeconds = 1.5
+    /// One particle lives for several loops, so respawns are rare.
+    private static let flipbookLifeSpan = 12.0
 
     /// Loads a sprite sheet from the bundle, or nil if none has been added.
     private static func flipbook(named name: String) -> TextureResource? {
@@ -98,57 +102,55 @@ final class LightRig {
         guard fireParticles == nil,
               let fire = Self.findNamed(prefix: "Fire_", in: scene).first else { return }
 
+        // This sheet is a whole campfire loop, not a single puff of flame. Sprite
+        // sheets come in two kinds and they need opposite treatment: a one-flame
+        // sheet is spawned many times and drifts, a full-fire loop is shown *once*
+        // as a single billboard. Emitting 14 a second of this one gave a cloud of
+        // overlapping campfires rising through the room.
+        //
+        // So: one stationary, long-lived particle that loops the animation.
         var emitter = ParticleEmitterComponent()
-        // A shallow bed the width of the firebox, so flames rise off coals rather
-        // than from a point.
-        emitter.emitterShape = .box
-        emitter.emitterShapeSize = [0.34, 0.04, 0.22]
+        emitter.emitterShape = .point
         emitter.birthDirection = .local
         emitter.emissionDirection = [0, 1, 0]
-        emitter.speed = 0.30
-        emitter.speedVariation = 0.18
+        emitter.speed = 0
+        emitter.speedVariation = 0
 
         var flame = ParticleEmitterComponent.ParticleEmitter()
-        flame.birthRate = 14
-        flame.birthRateVariation = 4
-        flame.lifeSpan = 0.85
-        flame.lifeSpanVariation = 0.35
-        // Bigger and slower with a real texture: one frame is a whole flame, not a
-        // speck, so fewer and larger particles read better than a cloud of them.
-        flame.size = 0.30
-        flame.sizeVariation = 0.08
-        flame.acceleration = [0, 0.45, 0]          // convection
-        flame.dampingFactor = 1.4
-        flame.spreadingAngle = 0.42
-        flame.angleVariation = .pi
-        // The sheet carries its own alpha and already looks like fire, so additive
-        // on top blows the bright core out to white. Alpha keeps its shape.
-        flame.blendMode = .alpha
+        // Long life and a matching birth rate keeps roughly one alive at a time.
+        flame.lifeSpan = Self.flipbookLifeSpan
+        flame.lifeSpanVariation = 0
+        flame.birthRate = Float(1.0 / Self.flipbookLifeSpan)
+        flame.birthRateVariation = 0
+        flame.size = 0.62                    // a hearth fire, not a candle
+        flame.sizeVariation = 0
+        flame.acceleration = [0, 0, 0]       // it sits in the grate
+        flame.dampingFactor = 0
+        flame.spreadingAngle = 0
+        flame.angle = 0
+        flame.angleVariation = 0
+        flame.blendMode = .alpha             // the sheet has its own alpha
         flame.billboardMode = .billboard
-        flame.isLightingEnabled = false             // it is the source, not lit
-        flame.opacityCurve = .quickFadeInOut
-        // Yellow at the base cooling to red as it rises.
-        // The sheet is already coloured; tint gently rather than recolouring it.
-        flame.color = .evolving(
-            start: .single(UIColor(red: 1.0, green: 0.92, blue: 0.80, alpha: 1)),
-            end: .single(UIColor(red: 1.0, green: 0.62, blue: 0.30, alpha: 1)))
-        // A flipbook, if one has been supplied. RealityKit wants a single sprite
-        // sheet in `image` plus the grid in `imageSequence` — not separate frames.
-        // Drop a sheet at app/WizardTower/Skies/../fire_flipbook.png and set the
-        // grid below to match it; without one the particles are soft dots.
+        flame.isLightingEnabled = false      // it is the source, not lit
+        flame.opacityCurve = .constant       // no fade: it must not pulse
+        flame.color = .constant(.single(UIColor(red: 1.0, green: 0.95, blue: 0.88, alpha: 1)))
+
         if let sheet = Self.flipbook(named: "fire_flipbook") {
             flame.image = sheet
             var sequence = ParticleEmitterComponent.ParticleEmitter.ImageSequence()
             sequence.rowCount = Self.flipbookRows
             sequence.columnCount = Self.flipbookColumns
-            sequence.frameRate = 30
-            sequence.frameRateVariation = 4
-            sequence.initialFrameVariation = Self.flipbookRows * Self.flipbookColumns
+            // 36 frames over the loop's length, so it plays at its intended speed.
+            sequence.frameRate = Float(Self.flipbookRows * Self.flipbookColumns)
+                / Float(Self.flipbookLoopSeconds)
+            sequence.frameRateVariation = 0
+            sequence.initialFrame = 0
+            sequence.initialFrameVariation = 0
             sequence.animationMode = .looping
             flame.imageSequence = sequence
             log.info("fire flipbook loaded, \(Self.flipbookRows)x\(Self.flipbookColumns)")
         } else {
-            log.info("no fire flipbook — particles will read as soft dots")
+            log.info("no fire flipbook — the hearth will show untextured particles")
         }
         emitter.mainEmitter = flame
 

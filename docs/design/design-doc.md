@@ -244,9 +244,16 @@ Particles are attached in Swift to the named `Fire_` entity rather than authored
 into USD: Apple's samples contain no text-authored emitters, so the schema would be
 guesswork, and the generator's job is geometry and names, not behaviour.
 
-**Open:** particles need an `imageSequence` texture to read as flame rather than
-soft dots. Either a CC0 flame sprite sheet, or additive warm dots may be enough at
-hearth distance.
+**Sprite sheets come in two kinds, and they need opposite treatment.** A
+*single-flame* sheet is spawned many times and drifts upward. A *full-fire loop*
+like `CampFire_..._Loop_...` is one complete campfire, and must be shown as **one
+stationary billboard** playing the loop. Feeding a full-fire loop into a spawning
+emitter gives a cloud of overlapping campfires rising through the room.
+
+Ours is a full-fire loop, so the emitter is configured to keep exactly one
+long-lived, stationary particle alive: point shape, zero speed, no acceleration,
+`opacityCurve = .constant` so it cannot pulse, and a birth rate that is the
+reciprocal of the lifespan.
 
 ## Lighting plan
 
