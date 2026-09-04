@@ -11,8 +11,18 @@ From *Creating fully immersive experiences*:
 > outside of that zone, the system automatically stops the immersive experience and turns on the
 > external video again.
 
-A 1.5 m radius — a 3 m circle. It is a safety assistant, and for `.full` it is outside the
-developer's control. Pacing around during a call would repeatedly eject you from the tower.
+**Radius, not diameter.** "extends 1.5 metres *from* the initial position" — so 1.5 m in
+every direction, a 3 m circle. It is a safety assistant, and for `.full` it is outside the
+developer's control.
+
+**But it is centred on where you start, not on the room.** You begin at the desk, which is at
+the edge of the walkable envelope, not its middle. So the useful travel is 1.5 m backwards —
+about two paces — not the 3 m the diameter implies. The envelope is 3.0 m deep, so roughly
+half of it is out of bounds from a seated start.
+
+Recentring re-establishes the boundary where you then are, so standing up, recentring, and
+pacing from there would work. That is a deliberate action each time rather than something
+that just happens.
 
 ## The way around it: mixed immersion + an enclosing room
 
