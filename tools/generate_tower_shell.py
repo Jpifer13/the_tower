@@ -101,6 +101,7 @@ ROUGH_MIN = 0.45
 
 class Mesh:
     flipped = 0
+    flip_by_mesh = {}
 
     def __init__(self, name, color, texture=None, tint=(1.0, 1.0, 1.0)):
         self.name, self.color, self.texture, self.tint = name, color, texture, tint
@@ -127,6 +128,7 @@ class Mesh:
             if isinstance(normal, list):
                 normal = list(reversed(normal))
             Mesh.flipped += 1
+            Mesh.flip_by_mesh[self.name] = Mesh.flip_by_mesh.get(self.name, 0) + 1
 
         if isinstance(normal, list):
             self.normals.extend(normal)
@@ -331,9 +333,10 @@ def build():
         floor.face([fa, fb, fc], (0.0, 1.0, 0.0),
                    [(v[0] / TILE, v[2] / TILE) for v in (fa, fb, fc)])
 
-        # Inward-facing wall normal
+        # Inward-facing wall normal. A wall point is (R sin t, y, -R cos t - SEAT_Z),
+        # so the inward radial is (-sin t, 0, +cos t). The Z sign here was wrong.
         t = math.radians(mid)
-        n = (-math.sin(t), 0.0, -math.cos(t))
+        n = (-math.sin(t), 0.0, math.cos(t))
 
         in_window = (SEG0 <= s < SEG1)
         # Cylindrical UVs: u follows the circumference, v is height. No stretching.
@@ -367,7 +370,7 @@ def build():
         # Cone to the apex
         # Conical UVs: u round the eaves, v up the slope to the apex.
         roof.face([p(a, WALL_HEIGHT), p(b, WALL_HEIGHT), (0.0, APEX_HEIGHT, -SEAT_Z)],
-                  (-math.sin(t) * 0.5, -0.5, -math.cos(t) * 0.5),
+                  (-math.sin(t) * 0.5, -0.5, math.cos(t) * 0.5),
                   [(ua, 0.0), (ub, 0.0), ((ua + ub) / 2.0, slope / TILE)])
 
     # Window reveal — the faces you see when you lean into the opening. Design doc
@@ -375,7 +378,7 @@ def build():
     reveal = Mesh("Reveal", (0.42, 0.41, 0.39), texture="wall", tint=WALL_TINT)
 
     # Jambs, on the exact segment boundaries the opening was cut on.
-    for side, th in ((-1.0, w0), (1.0, w1)):
+    for side, th in ((1.0, w0), (-1.0, w1)):
         t = math.radians(th)
         nrm = (side * math.cos(t), 0.0, side * math.sin(t))
         reveal.face([p(th, WINDOW_SILL), po(th, WINDOW_SILL),
@@ -690,6 +693,8 @@ def Xform "TowerShell"
     print(f"  wall ahead {R + SEAT_Z:.2f} m, room behind you {R - SEAT_Z:.2f} m")
     print(f"  roof: wall plate + apex boss (no rafters)")
     print(f"  winding: {Mesh.flipped} faces reordered to match their normals")
+    for k, v in sorted(Mesh.flip_by_mesh.items(), key=lambda kv: -kv[1]):
+        print(f"      {k}: {v}")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
     print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
