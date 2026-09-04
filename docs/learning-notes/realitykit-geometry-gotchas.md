@@ -48,6 +48,32 @@ This wasted a lot of time twice: skydome textures stayed P3, and a "desaturated"
 wall texture was never desaturated — which then invalidated a conclusion drawn
 from measuring it.
 
+## 5. `UIImage(named:)` will not find loose bundle files
+
+It is really an asset-catalog lookup. A `.jpg` sitting at the root of the app
+bundle is not found, and the failure is silent unless you log it. Resolve the URL
+instead:
+
+```swift
+Bundle.main.url(forResource: name, withExtension: "jpg")
+```
+
+This is how the window's image-based light quietly did nothing while the room was
+lit by the directional sun alone, and looked flat as a result.
+
+## 6. `log show` hides info-level messages
+
+Without `--info` you only see errors, so success messages never appear and it
+looks like the code never ran:
+
+```
+xcrun simctl spawn "Apple Vision Pro" log show --info --last 3m \
+    --predicate 'subsystem == "io.confuseddev.wizardtower"'
+```
+
+Also: never `assertionFailure` on a missing asset. It traps in debug and kills the
+app, turning a cosmetic problem into a crash with no diagnostics.
+
 ## The pattern worth remembering
 
 Every bug here looked like it had been fixed. An edit that did not apply, a flag
