@@ -79,6 +79,11 @@ final class LightRig {
     /// Metres. Keeps each lamp local to its own stretch of street.
     private static let lampReach: Float = 17
 
+    /// How many wall torches carry a real light, nearest first.
+    private static let litTorchRange = 8
+    private static let torchIntensity: Float = 20000
+    private static let torchReach: Float = 12
+
     private var appliedLamps: Bool?
     /// The emissive materials the generator baked onto the lamp heads, kept so
     /// they can be put back at dusk after being swapped out for daylight.
@@ -344,6 +349,7 @@ final class LightRig {
         unlitHead.metallic = 0.0
 
         var heads: [Entity] = []
+        var torches: [Entity] = []
         var pools = 0, panes = 0
         func walk(_ entity: Entity) {
             if entity.name.hasPrefix("LampPool_") {
@@ -354,6 +360,8 @@ final class LightRig {
                 // through midday unless they are switched too.
                 entity.isEnabled = lit
                 panes += 1
+            } else if entity.name.hasPrefix("Torch_") {
+                torches.append(entity)
             } else if entity.name.hasPrefix("Lamp_") {
                 heads.append(entity)
                 if var model = entity.components[ModelComponent.self] {
@@ -394,9 +402,26 @@ final class LightRig {
                 intensity: Self.lampIntensity,
                 attenuationRadius: Self.lampReach))
         }
+        // Torches get their own allocation rather than competing with the lamps
+        // for slots: they ring the wall, so the nearest few are what actually
+        // reaches the eye, and they burn oranger and shorter than a lamp.
+        let nearTorches = torches
+            .sorted { simd_length_squared($0.position(relativeTo: nil))
+                    < simd_length_squared($1.position(relativeTo: nil)) }
+        for (index, torch) in nearTorches.enumerated() {
+            guard lit, index < Self.litTorchRange else {
+                torch.components.remove(PointLightComponent.self)
+                continue
+            }
+            torch.components.set(PointLightComponent(
+                color: UIColor(red: 1.0, green: 0.60, blue: 0.26, alpha: 1.0),
+                intensity: Self.torchIntensity,
+                attenuationRadius: Self.torchReach))
+        }
+
         let real = lit ? min(Self.litLampRange, nearest.count) : 0
         let state = lit ? "lit" : "out"
-        log.info("village lights \(state): \(nearest.count) lamps, \(pools) pools, \(panes) window groups, \(real) casting real light")
+        log.info("village lights \(state): \(nearest.count) lamps, \(nearTorches.count) torches, \(pools) pools, \(panes) window groups, \(real) casting real light")
     }
 
     /// Sky images are loose files in the bundle, not asset-catalog entries, so

@@ -218,6 +218,8 @@ class Mesh:
             return self._orb_material(indent)
         if self.name.startswith("WinGlow"):
             return self._window_material(indent)
+        if self.name.startswith("Torch_"):
+            return self._torch_material(indent)
         if self.name.startswith("Lamp_") or self.name.startswith("LampPool_"):
             return self._lamp_material(indent)
         if self.texture:
@@ -459,6 +461,25 @@ class Mesh:
 {i}        color3f inputs:emissiveColor = ({emit[0]}, {emit[1]}, {emit[2]})
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 1
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _torch_material(self, indent):
+        """Firelight: hotter and far more orange than the street lamps, so the
+        wall reads as burning rather than lit."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.30, 0.13, 0.04)
+{i}        color3f inputs:emissiveColor = (6.20, 2.35, 0.55)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.7
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -1057,6 +1078,7 @@ WALL_RADIUS     = 45.0     # m — hugs the built area; wider left a ring of emp
 WALL_HEIGHT_V   = 6.20     # m to the walkway
 WALL_THICK_V    = 1.30
 MERLON_H        = 1.10
+TORCH_SPACING   = 13.0     # m along the wall walk between torches
 GATE_HALF_ANGLE = 7.0      # deg of wall left open for the road
 LIT_WINDOW      = 0.28     # share of upper windows with a light behind them
 SQUARE_HALF     = 10.0     # half-width of the market square at the crossroads
@@ -1112,12 +1134,12 @@ def village_layout():
         if abs(cx) < SQUARE_HALF + hx and abs(cz) < SQUARE_HALF + hz:
             return False
         for axis, fixed, _ in STREETS:
-            width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.5
+            width = (STREET_W if fixed == 0.0 else LANE_W) / 2.0 + 0.25
             if axis == "x" and abs(cz - fixed) < width + hz:
                 return False
             if axis == "z" and abs(cx - fixed) < width + hx:
                 return False
-        gap = 0.3 if VILLAGE_STYLE == "prebuilt" else 0.5
+        gap = 0.12 if VILLAGE_STYLE == "prebuilt" else 0.5
         for ox, oz, ohx, ohz in taken:
             if abs(cx - ox) < hx + ohx + gap and abs(cz - oz) < hz + ohz + gap:
                 return False
@@ -1146,7 +1168,9 @@ def village_layout():
                 # cross lanes is what jammed the houses into each other.
                 along, deep = w, d
                 # Must exceed the clearance in free(), or every house rejects itself.
-                setback = half_street + deep / 2.0 + 1.0
+                # A walled town builds tight to the street; the old 1.0 m
+                # left a verge nobody in the middle ages could afford.
+                setback = half_street + deep / 2.0 + 0.45
                 if axis == "x":
                     cx, cz = pos + along / 2.0, fixed + side * setback
                     hx, hz = along / 2.0, deep / 2.0
@@ -1168,7 +1192,8 @@ def village_layout():
                         "timber": rng.random() < 0.35,
                     })
                     # Terraced: near enough touching, as a walled town would be.
-                    pos += along + rng.uniform(0.1, 0.7)
+                    # Near enough touching: these are terraces, not villas.
+                    pos += along + rng.uniform(0.05, 0.30)
                 else:
                     pos += 2.0
 
@@ -1597,6 +1622,50 @@ def write_lamp_pool_texture():
     return _write_gray_png(OUT.parent / "textures" / "lamp_pool.png", 128, sample)
 
 
+def village_torches():
+    """Torches along the curtain wall walk.
+
+    Set on the inner lip so they light the wall itself and the ground inside it,
+    and read as a ring of fire around the town from the tower. Like the street
+    lamps these are emissive geometry; LightRig puts them out at dawn and gives
+    the nearest few a real light.
+    """
+    posts = Mesh("TorchPosts", (0.14, 0.12, 0.10), texture="roof", tint=(0.26, 0.22, 0.18))
+    heads = []
+    y0 = -TOWER_ELEV
+    radius = WALL_RADIUS - WALL_THICK_V / 2.0 - 0.22
+    count = max(8, int(2.0 * math.pi * WALL_RADIUS / TORCH_SPACING))
+
+    for i in range(count):
+        ang = 360.0 * i / count
+        # Leave the gateway clear.
+        if abs(((ang - 90.0 + 180) % 360) - 180) < GATE_HALF_ANGLE + 2.0:
+            continue
+        t = math.radians(ang)
+        wx, wz = village_to_world(radius * math.sin(t), -radius * math.cos(t))
+
+        # A stub of a bracket, so the flame is not floating unsupported.
+        for face_i in range(4):
+            fa = math.radians(face_i * 90)
+            nx, nz = math.sin(fa), math.cos(fa)
+            tx, tz = math.cos(fa), -math.sin(fa)
+            h = 0.06
+            lo, hi = y0 + WALL_HEIGHT_V, y0 + WALL_HEIGHT_V + 0.62
+            posts.face([(wx + nx * h + tx * h, lo, wz + nz * h + tz * h),
+                        (wx + nx * h - tx * h, lo, wz + nz * h - tz * h),
+                        (wx + nx * h - tx * h, hi, wz + nz * h - tz * h),
+                        (wx + nx * h + tx * h, hi, wz + nz * h + tz * h)],
+                       (nx, 0.0, nz), [(0, 0), (0.1, 0), (0.1, 0.6), (0, 0.6)])
+
+        head = Mesh(f"Torch_{i}", (1.0, 0.55, 0.22),
+                    translate=(wx, y0 + WALL_HEIGHT_V + 0.74, wz))
+        sphere(head, (0.0, 0.0, 0.0), 0.16, 8, 6)
+        heads.append(head.material_usda() + head.usda())
+
+    print(f"  torches: {len(heads)} along the wall")
+    return posts.material_usda() + posts.usda() + "".join(heads)
+
+
 def village_lamps():
     """Street lamps. Emissive only — thirty more point lights would cost far more
     than they are worth for something forty metres away behind glass."""
@@ -1977,7 +2046,7 @@ def main():
     shaft = tower_shaft()
     hearth = fireplace()
     orb = orb_and_pedestal()
-    hood = village() + village_streets() + village_wall() + village_lamps()
+    hood = village() + village_streets() + village_wall() + village_lamps() + village_torches()
     grnd = ground() + hills()
     prp = props()
     cnd = candles()
