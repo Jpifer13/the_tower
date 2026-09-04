@@ -242,3 +242,38 @@ fine at a quarter of that resolution — the stars set the requirement.
 The same arithmetic is why the sun disc uses an angular threshold on the angle to
 the sun (`gamma < 0.010 rad`) rather than any pixel measure: it stays the right
 apparent size whatever the texture resolution.
+
+## 17. RealityKit ignores a texture-connected `opacity`
+
+Frosting the window pane meant varying its opacity across a mottling texture:
+`float inputs:opacity.connect = </...Mat/frostTex.outputs:r>`. It compiled, and
+it did nothing whatsoever.
+
+Measured through the window, on the same scene:
+
+| pane | mean | contrast (sd) |
+|---|---|---|
+| `opacity.connect` to a texture | 35.3 | 23.0 |
+| constant `opacity = 0.85` | 56.0 | 4.0 |
+
+So the surface draws and a constant opacity works; only the *connection* is
+dropped. `diffuseColor.connect` on the same material, from the same texture, is
+honoured — this is specific to opacity. Note the failure mode: not an error, not
+a warning, just a pane that is exactly as clear as it was before.
+
+## 18. A transparent pane cannot hide detail, only contrast
+
+Even with a constant opacity the frosted window did not do what it was meant to.
+RealityKit does not refract, so blending toward the pane's own colour lowers
+contrast while leaving every edge sharp: at opacity 0.66 the view's contrast fell
+from 23 to 12.6 and the roof tiles and cobbles were still perfectly legible. It
+reads as a dark tint, not as frosted glass.
+
+Detail can only be taken away by something that physically occludes it. The
+window now carries diamond lead cames — real geometry — and *that* breaks the
+view up.
+
+Beware of judging it from the wrong distance: the first leading looked like a
+chain-link fence because the test camera sat 0.7 m from the pane. From the seat,
+3.6 m back, the same lattice reads as a window. Evaluate a window from where the
+chair is.

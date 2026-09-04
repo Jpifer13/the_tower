@@ -53,6 +53,15 @@ ORB_GAP       = 0.10   # m the orb floats above the cap
 ORB_SEGS      = 20
 
 GLASS_OPACITY = 0.14   # how much the pane tints the view
+# 0 leaves the pane as clear as it was; 1 is heavy frosting that keeps only
+# colour and glow. TOWER_GLASS_FROST overrides it.
+GLASS_FROST   = float(os.environ.get("TOWER_GLASS_FROST", "0.62"))
+# Diamond leading. Frosting alone cannot hide detail -- RealityKit does not
+# refract, so a blended pane lowers contrast but leaves every edge sharp. Lead
+# cames are geometry, and geometry actually occludes.
+GLASS_LEAD    = os.environ.get("TOWER_GLASS_LEAD", "1") == "1"
+LEAD_SPACING  = 0.17   # m between cames, measured along the pane
+LEAD_WIDTH    = 0.018  # m
 ROOF_THICK    = 0.18   # m, roof thickness. Without an outer surface the cone is
                        # invisible from outside and casts no shadow.
 
@@ -312,16 +321,45 @@ class Mesh:
         Swift — see TowerLighting — otherwise the pane blocks the window light it
         is supposed to let through."""
         i, n = indent, self.name
+        base = f"</TowerShell/{n}Mat"
+        # RealityKit ignores a texture-connected `opacity` on UsdPreviewSurface:
+        # measured, a constant 0.85 veiled the village while the same value fed
+        # through a texture did nothing at all. So opacity is a constant, and the
+        # unevenness that makes it read as old glass rather than as fog comes
+        # from the mottling driving diffuseColor, which does work.
+        # Measured through the window: opacity 0.48 dropped the view's contrast
+        # from 23 to 17, which is barely noticeable; 0.85 flattened it to 4,
+        # which is fog on a screen rather than glass. The useful range is
+        # between, so map frost across the whole span and default near the top.
+        opacity = GLASS_OPACITY + (0.88 - GLASS_OPACITY) * GLASS_FROST
+        rough = 0.06 + 0.55 * GLASS_FROST
         return f'''{i}def Material "{n}Mat"
 {i}{{
-{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    token outputs:surface.connect = {base}/Surface.outputs:surface>
+{i}    def Shader "stReader"
+{i}    {{
+{i}        uniform token info:id = "UsdPrimvarReader_float2"
+{i}        token inputs:varname = "st"
+{i}        float2 outputs:result
+{i}    }}
+{i}    def Shader "frostTex"
+{i}    {{
+{i}        uniform token info:id = "UsdUVTexture"
+{i}        asset inputs:file = @textures/glass_frost.png@
+{i}        float4 inputs:scale = (0.80, 0.86, 0.90, 1)
+{i}        float4 inputs:bias = (0.15, 0.16, 0.18, 0)
+{i}        float2 inputs:st.connect = {base}/stReader.outputs:result>
+{i}        token inputs:wrapS = "clamp"
+{i}        token inputs:wrapT = "clamp"
+{i}        float3 outputs:rgb
+{i}    }}
 {i}    def Shader "Surface"
 {i}    {{
 {i}        uniform token info:id = "UsdPreviewSurface"
-{i}        color3f inputs:diffuseColor = (0.78, 0.85, 0.88)
+{i}        color3f inputs:diffuseColor.connect = {base}/frostTex.outputs:rgb>
 {i}        float inputs:metallic = 0
-{i}        float inputs:roughness = 0.06
-{i}        float inputs:opacity = {GLASS_OPACITY}
+{i}        float inputs:roughness = {rough:.2f}
+{i}        float inputs:opacity = {opacity:.3f}
 {i}        float inputs:ior = 1.5
 {i}        token outputs:surface
 {i}    }}
@@ -637,6 +675,7 @@ def build():
 
     # Glazing. Sits mid-way through the reveal so the stone frames it on both
     # sides, and is emitted twice so it reads from inside and out.
+    write_glass_frost_texture()
     glass = Mesh("Glass", (0.78, 0.85, 0.88))
     glass_r = R + WALL_THICK / 2.0
 
@@ -651,11 +690,61 @@ def build():
         outward = (math.sin(mid), 0.0, -math.cos(mid))
         quad = [gp(a, WINDOW_SILL), gp(b, WINDOW_SILL),
                 gp(b, WINDOW_HEAD), gp(a, WINDOW_HEAD)]
-        uv = [(0.0, 0.0), (1.0, 0.0), (1.0, 1.0), (0.0, 1.0)]
+        # UVs run across the whole window, not 0..1 per segment: otherwise the
+        # frost pattern restarts at every segment and the pane reads as strips.
+        u0 = (seg - SEG0) / float(SEG1 - SEG0)
+        u1 = (seg + 1 - SEG0) / float(SEG1 - SEG0)
+        uv = [(u0, 0.0), (u1, 0.0), (u1, 1.0), (u0, 1.0)]
         glass.face(quad, inward, uv)
         glass.face(list(reversed(quad)), outward, list(reversed(uv)))
 
+    # --- diamond leading over the pane ---
+    lead = Mesh("Leading", (0.10, 0.10, 0.12))
+    if GLASS_LEAD:
+        lead_r = glass_r - 0.025          # just inside the glass, toward the room
+        arc0, arc1 = SEG0 * step_deg, SEG1 * step_deg
+        width = lead_r * math.radians(arc1 - arc0)
+        height = WINDOW_HEAD - WINDOW_SILL
+
+        def lp(u, v):
+            """Parametric point on the pane: u along the arc, v up from the sill."""
+            t = math.radians(arc0) + u / lead_r
+            return (lead_r * math.sin(t), WINDOW_SILL + v,
+                    -lead_r * math.cos(t) - SEAT_Z)
+
+        def inward_at(u):
+            t = math.radians(arc0) + u / lead_r
+            return (-math.sin(t), 0.0, math.cos(t))
+
+        half = LEAD_WIDTH / 2.0
+        for sign in (1.0, -1.0):
+            # Diagonals of both families: u - sign*v = c.
+            k = -int((height + width) / LEAD_SPACING) - 1
+            while k * LEAD_SPACING <= width + height:
+                c = k * LEAD_SPACING
+                k += 1
+                # Clip the line to the pane rectangle before drawing any of it,
+                # rather than stepping along it and discarding what falls off.
+                v0 = max(0.0, min((0.0 - c) * sign, (width - c) * sign))
+                v1 = min(height, max((0.0 - c) * sign, (width - c) * sign))
+                if v1 - v0 < 0.02:
+                    continue
+                steps = 6
+                for i in range(steps):
+                    va = v0 + (v1 - v0) * i / steps
+                    vb = v0 + (v1 - v0) * (i + 1) / steps
+                    ua, ub = c + sign * va, c + sign * vb
+                    # Offset perpendicular to the came, in the pane's own plane.
+                    du, dv = ub - ua, vb - va
+                    ln = math.hypot(du, dv) or 1.0
+                    ox, oy = -dv / ln * half, du / ln * half
+                    quad = [lp(ua - ox, va - oy), lp(ub - ox, vb - oy),
+                            lp(ub + ox, vb + oy), lp(ua + ox, va + oy)]
+                    lead.face(quad, inward_at((ua + ub) / 2.0))
+
     parts = [floor, wall, roof, reveal, glass]
+    if GLASS_LEAD and lead.pts:
+        parts.append(lead)
     body = "".join(m.material_usda() + m.usda() for m in parts)
     return floor, body
 
@@ -1332,6 +1421,71 @@ def village_wall():
     return m.material_usda() + m.usda()
 
 
+def _write_gray_png(path, size, sample):
+    """Write a size x size 8-bit greyscale PNG from sample(u, v) in 0..1.
+
+    Hand-rolled rather than pulled from a library: these are small procedural
+    textures generated at build time, and the project has no imaging dependency.
+    """
+    import binascii
+    import struct
+    import zlib
+
+    rows = bytearray()
+    for y in range(size):
+        rows.append(0)                       # PNG filter byte: none
+        for x in range(size):
+            v = sample((x + 0.5) / size, (y + 0.5) / size)
+            rows.append(int(max(0.0, min(1.0, v)) * 255))
+
+    def chunk(tag, data):
+        return (struct.pack(">I", len(data)) + tag + data
+                + struct.pack(">I", binascii.crc32(tag + data) & 0xFFFFFFFF))
+
+    path.write_bytes(b"\x89PNG\r\n\x1a\n"
+                     + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 0, 0, 0, 0))
+                     + chunk(b"IDAT", zlib.compress(bytes(rows), 9))
+                     + chunk(b"IEND", b""))
+    return path
+
+
+def _value_noise(x, y, seed):
+    """Smooth lattice noise, deterministic across runs."""
+    def h(ix, iy):
+        n = (ix * 374761393 + iy * 668265263 + seed * 2147483647) & 0xFFFFFFFF
+        n = (n ^ (n >> 13)) * 1274126177 & 0xFFFFFFFF
+        return ((n ^ (n >> 16)) & 0xFFFFFFFF) / 0xFFFFFFFF
+
+    ix, iy = math.floor(x), math.floor(y)
+    fx, fy = x - ix, y - iy
+    u = fx * fx * (3 - 2 * fx)
+    v = fy * fy * (3 - 2 * fy)
+    a = h(ix, iy) + (h(ix + 1, iy) - h(ix, iy)) * u
+    b = h(ix, iy + 1) + (h(ix + 1, iy + 1) - h(ix, iy + 1)) * u
+    return a + (b - a) * v
+
+
+def write_glass_frost_texture():
+    """Mottling for the window pane.
+
+    RealityKit will not blur what is behind a transparent surface -- roughness
+    drives reflection, not transmission -- so the pane cannot literally defocus
+    the village. What it can do is veil it: an uneven, milky sheet that flattens
+    contrast and swallows fine detail while colour and light still read through.
+    Uneven is the point; a flat wash looks like fog on a screen, whereas old
+    glass is thick in some places and thin in others.
+    """
+    def sample(u, v):
+        n = (0.55 * _value_noise(u * 4.0, v * 3.0, 11)
+             + 0.30 * _value_noise(u * 9.0, v * 7.0, 29)
+             + 0.15 * _value_noise(u * 19.0, v * 15.0, 47))
+        # Streak it slightly along the pane, the way drawn glass runs.
+        n = 0.8 * n + 0.2 * _value_noise(u * 2.0, v * 26.0, 71)
+        return 0.15 + 0.85 * n
+
+    return _write_gray_png(OUT.parent / "textures" / "glass_frost.png", 256, sample)
+
+
 def write_lamp_pool_texture():
     """A soft radial gradient for the pool of light under each street lamp.
 
@@ -1339,35 +1493,14 @@ def write_lamp_pool_texture():
     light. The falloff has to be in the texture. Written here rather than
     committed as a binary, and with no third-party imaging dependency.
     """
-    import binascii
-    import struct
-    import zlib
+    def sample(u, v):
+        r = min(1.0, math.hypot(u * 2.0 - 1.0, v * 2.0 - 1.0))
+        # Eased to exactly zero at the rim so the disc has no visible edge
+        # against the dark ground. The exponent sets how far the glow carries:
+        # squared dies close to the post, so keep it gentler.
+        return (1.0 - r) ** 1.6
 
-    path = OUT.parent / "textures" / "lamp_pool.png"
-    size = 128
-    rows = bytearray()
-    for y in range(size):
-        rows.append(0)                       # PNG filter byte: none
-        for x in range(size):
-            dx = (x + 0.5) / size * 2.0 - 1.0
-            dy = (y + 0.5) / size * 2.0 - 1.0
-            r = min(1.0, math.hypot(dx, dy))
-            # Eased to exactly zero at the rim so the disc has no visible edge
-            # against the dark ground. The exponent sets how far the glow
-            # carries: squared dies close to the post, so keep it gentler.
-            v = (1.0 - r) ** 1.6
-            rows.append(int(max(0.0, min(1.0, v)) * 255))
-
-    def chunk(tag, data):
-        return (struct.pack(">I", len(data)) + tag + data
-                + struct.pack(">I", binascii.crc32(tag + data) & 0xFFFFFFFF))
-
-    png = (b"\x89PNG\r\n\x1a\n"
-           + chunk(b"IHDR", struct.pack(">IIBBBBB", size, size, 8, 0, 0, 0, 0))
-           + chunk(b"IDAT", zlib.compress(bytes(rows), 9))
-           + chunk(b"IEND", b""))
-    path.write_bytes(png)
-    return path
+    return _write_gray_png(OUT.parent / "textures" / "lamp_pool.png", 128, sample)
 
 
 def village_lamps():
