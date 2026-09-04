@@ -642,7 +642,12 @@ def fireplace():
     face([(-ow, 0, back), (-ow, 0, d), (-ow, oh, d), (-ow, oh, back)], right, (d - back, oh))
     face([(ow, 0, d), (ow, 0, back), (ow, oh, back), (ow, oh, d)], left, (d - back, oh))
     face([(-ow, oh, back), (-ow, oh, d), (ow, oh, d), (ow, oh, back)], down, (FIRE_OPEN_W, d - back))
-    face([(-ow, 0, back), (ow, 0, back), (ow, 0, d), (-ow, 0, d)], up, (FIRE_OPEN_W, d - back))
+    # Firebox floor, raised to the hearth slab's level. At y=0 it was exactly
+    # coplanar with the room floor, and the two z-fought — which shimmers as you
+    # move. Flush with the slab is also how a hearth actually reads: one
+    # continuous stone surface from inside the opening out onto the boards.
+    face([(-ow, FIRE_HEARTH_T, back), (ow, FIRE_HEARTH_T, back),
+          (ow, FIRE_HEARTH_T, d), (-ow, FIRE_HEARTH_T, d)], up, (FIRE_OPEN_W, d - back))
     # Hearth slab, reaching out onto the floor
     sw = ow + 0.22
     face([(-sw, FIRE_HEARTH_T, d), (sw, FIRE_HEARTH_T, d),
