@@ -638,17 +638,20 @@ PROPS = [
 # live here only, rather than being duplicated in TowerLighting.
 # (prop, x, y, z, yaw, [(dx, dy, dz) per flame])
 CANDLES = [
-    # Offsets are measured from the meshes, not guessed: the triple's outer candles
-    # sit at y 0.34 and x +/-0.172, the stands carry six cups on a 0.31 m ring at
-    # y 1.30, and the chandelier hangs *below* its origin with four cups at y -0.80.
+    # Offsets measured from the meshes by isolating the wax material (the candles
+    # share a mesh with the metalwork, so clustering raw vertices counts arms and
+    # bowls as cups — which is how the stands were first read as six and the
+    # chandelier as four). Splitting by MI_Trim_Props_Vertex gives the real count:
+    # eight candles on each stand at r 0.31, eight on the chandelier at r 0.575,
+    # and three on the triple. The chandelier hangs *below* its origin.
     ("CandleStick_Triple", 0.85, 0.81, -0.95,   0.0,
      [(-0.172, 0.36, 0.0), (0.0, 0.48, 0.0), (0.172, 0.36, 0.0)]),
     ("Candle_1",           1.35, 0.81, -0.80,   0.0, [(0.0, 0.15, 0.0)]),
     ("Candle_2",          -0.95, 0.81, -1.05,  20.0, [(0.0, 0.27, 0.0)]),
     ("CandleStick",       -2.60, 0.69,  5.20,   0.0, [(-0.14, 0.18, 0.0)]),
-    ("CandleStick_Stand", -2.90, 0.00,  1.40,  25.0, [(0.000, 1.32, 0.310), (0.268, 1.32, 0.155), (0.268, 1.32, -0.155), (0.000, 1.32, -0.310), (-0.268, 1.32, -0.155), (-0.268, 1.32, 0.155)]),
-    ("CandleStick_Stand",  2.70, 0.00,  4.30, -20.0, [(0.000, 1.32, 0.310), (0.268, 1.32, 0.155), (0.268, 1.32, -0.155), (0.000, 1.32, -0.310), (-0.268, 1.32, -0.155), (-0.268, 1.32, 0.155)]),
-    ("Chandelier",         0.00, 4.30,  2.95,   0.0, [(0.000, -0.78, 0.222), (0.222, -0.78, 0.000), (0.000, -0.78, -0.222), (-0.222, -0.78, -0.000)]),
+    ("CandleStick_Stand", -2.90, 0.00,  1.40,  25.0, [(0.000, 1.31, 0.312), (0.221, 1.31, 0.221), (0.312, 1.31, 0.000), (0.221, 1.31, -0.221), (0.000, 1.31, -0.312), (-0.221, 1.31, -0.221), (-0.312, 1.31, -0.000), (-0.221, 1.31, 0.221)]),
+    ("CandleStick_Stand",  2.70, 0.00,  4.30, -20.0, [(0.000, 1.31, 0.312), (0.221, 1.31, 0.221), (0.312, 1.31, 0.000), (0.221, 1.31, -0.221), (0.000, 1.31, -0.312), (-0.221, 1.31, -0.221), (-0.312, 1.31, -0.000), (-0.221, 1.31, 0.221)]),
+    ("Chandelier",         0.00, 4.30,  2.95,   0.0, [(0.000, -0.89, 0.575), (0.407, -0.89, 0.407), (0.575, -0.89, 0.000), (0.407, -0.89, -0.407), (0.000, -0.89, -0.575), (-0.407, -0.89, -0.407), (-0.575, -0.89, -0.000), (-0.407, -0.89, 0.407)]),
 ]
 
 FLAME_RADIUS = 0.016
