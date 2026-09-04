@@ -82,11 +82,23 @@ final class LightRig {
                 root.addChild(entity)
                 iblEntity = entity
             }
-            scene.components.set(ImageBasedLightReceiverComponent(imageBasedLight: entity))
-            log.info("image-based light ready for \(state.timeOfDay.rawValue)")
+            // The receiver is not inherited: setting it on the root leaves every
+            // child lit by the system's own environment light instead, which is
+            // why the room stayed bright no matter how far the exponent dropped.
+            let count = Self.attachReceiver(to: scene, light: entity)
+            log.info("""
+                image-based light ready for \(state.timeOfDay.rawValue),                 exponent \(state.timeOfDay.iblExponent), \(count) receivers
+                """)
         } catch {
             log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
         }
+    }
+
+    /// Apply the receiver to the whole subtree and report how many entities got it.
+    @discardableResult
+    private static func attachReceiver(to entity: Entity, light: Entity) -> Int {
+        entity.components.set(ImageBasedLightReceiverComponent(imageBasedLight: light))
+        return entity.children.reduce(1) { $0 + attachReceiver(to: $1, light: light) }
     }
 
     // MARK: - Sun
