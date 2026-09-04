@@ -17,6 +17,10 @@ Auto-reject: "editorial only", "personal use only", "rendering only", AI-generat
 | ID | Asset | Category | Source | Price | Format | Converted to USDZ | License | License folder | Status |
 |---|---|---|---|---|---|---|---|---|---|
 | M-001 | **Tower shell — generated, not bought** | room-shell | `tools/generate_tower_shell.py` | $0 | USD | n/a — ours | n/a | ✅ |
+| M-100 | Quaternius Fantasy Props MegaKit (Standard, 94 assets) | furniture + props | quaternius.itch.io | $0 | glTF → USDC | ✅ 13 converted | CC0 | `licenses/quaternius-fantasy-props/` | ⏳ blockout only |
+
+Converted with `tools/convert_props.py` (Blender headless). Sources are real-world
+metres already; the only fix needed was Z-up → Y-up.
 
 ## Textures (PBR sets — "skins" for the generated shell)
 

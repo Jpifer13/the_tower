@@ -11,8 +11,9 @@ app/**/build/
 *.blend1
 *.blend2
 
-# Large source archives (keep extracted originals, not zips)
-assets/source/**/*.zip
+# Downloaded/purchased source assets — large, and not ours to redistribute.
+# Licences and the manifest are tracked; the binaries are not.
+assets/source/
 
 # Video editing scratch
 marketing/preview-video/**/Render Files/

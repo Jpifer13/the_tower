@@ -50,9 +50,14 @@ PLATE_H       = 0.28   # m, wall plate height where the cone lands on the stone
 PLATE_D       = 0.22   # m, how far it projects into the room
 BEAM_TINT     = (0.26, 0.19, 0.13)   # dark timber
 
-DESK_W, DESK_D, DESK_H = 1.83, 0.91, 0.75   # 6ft x 3ft
+DESK_W, DESK_D, DESK_H = 2.85, 1.10, 0.81   # matches props/Table_Large.usdc
 ENVELOPE_W, ENVELOPE_D = 2.70, 3.00          # real clear floor
 SEAT_SETBACK  = 0.30   # m you sit back from the desk edge
+
+# Blockout aids: 1.7 m reference figure, walkable-envelope slab, fireplace marker.
+# Useful while sizing the room, in the way once there is real furniture.
+#   TOWER_AIDS=1 python3 tools/generate_tower_shell.py
+SHOW_AIDS     = os.environ.get("TOWER_AIDS", "0") == "1"
 
 # Wall look. Tint multiplies the albedo, so darkness and warmth can be dialled without
 # re-downloading a texture: (1,1,1) is untouched, lower = darker, blue-biased = cooler.
@@ -523,6 +528,42 @@ NEIGHBOURS = [
 GROUND_RADIUS = 130.0
 
 
+# Converted Quaternius props (CC0). Placed user-relative: origin is the seat,
+# -Z is the desk you face, +X is your right.
+# (file, x, y, z, yaw deg)
+PROPS = [
+    ("Table_Large",       0.00, 0.00, -0.85,   0.0),
+    ("Chair_1",           0.00, 0.00,  0.20, 180.0),
+    ("Bookcase_2",        0.00, 0.00,  7.05, 180.0),
+    ("Shelf_Arch",       -3.30, 0.00,  2.60,  90.0),
+    ("Chest_Wood",       -2.60, 0.00,  5.20,  30.0),
+    ("Stool",             2.30, 0.00,  4.20,   0.0),
+    ("CandleStick_Triple", 0.85, 0.81, -0.95,  0.0),
+    ("Book_Stack_1",     -0.80, 0.81, -0.90,  15.0),
+    ("BookGroup_Medium_1", 0.00, 0.81, -1.15, -8.0),
+    ("Scroll_1",          0.35, 0.81, -0.70,  40.0),
+    ("Potion_1",         -1.15, 0.81, -0.75,   0.0),
+    ("Candle_1",          1.35, 0.81, -0.80,   0.0),
+    ("Chandelier",        0.00, 4.30,  2.95,   0.0),
+]
+
+
+def props():
+    """Reference the converted props into the scene."""
+    out = []
+    for name, x, y, z, yaw in PROPS:
+        out.append(f'''    def "{name}" (
+        prepend references = @props/{name}.usdc@
+    )
+    {{
+        double3 xformOp:translate = ({x}, {y}, {z})
+        float3 xformOp:rotateXYZ = (0, {yaw}, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }}
+''')
+    return "".join(out)
+
+
 def ground():
     """Ground for the neighbours to stand on. Without it the buildings hover in
     front of the skydome image with nothing under them."""
@@ -643,28 +684,26 @@ def main():
 
     # All positions are user-relative: you are at (0, 0, 0), facing -Z.
     desk_z = -(R - DESK_D / 2.0 - 0.05) - SEAT_Z
-    desk = box("DeskBlock", DESK_W, DESK_H, DESK_D,
-               (0.0, 0.0, desk_z), (0.32, 0.22, 0.14))
+    desk = ""   # replaced by props/Table_Large.usdc
 
-    # Reference figure stood in the pacing area, so scale can be judged at a glance.
-    human = box("HumanReference_1m7", 0.45, 1.70, 0.25,
-                (0.0, 0.0, 1.80), (0.85, 0.35, 0.35))
-
-    # Your real clear floor, laid on the virtual one. Behind you, starting at the chair.
-    envelope = box("WalkableEnvelope", ENVELOPE_W, 0.01, ENVELOPE_D,
-                   (0.0, 0.0, 0.35 + ENVELOPE_D / 2.0), (0.25, 0.55, 0.35))
-
-    # Fireplace marker, to your left, level with the window.
-    ft = math.radians(FIRE_CENTRE)
-    fire = box("FireplaceMarker", 1.20, 1.40, 0.40,
-               ((R - 0.2) * math.sin(ft), 0.0, -(R - 0.2) * math.cos(ft) - SEAT_Z),
-               (0.55, 0.25, 0.15))
+    if SHOW_AIDS:
+        human = box("HumanReference_1m7", 0.45, 1.70, 0.25,
+                    (0.0, 0.0, 1.80), (0.85, 0.35, 0.35))
+        envelope = box("WalkableEnvelope", ENVELOPE_W, 0.01, ENVELOPE_D,
+                       (0.0, 0.0, 0.35 + ENVELOPE_D / 2.0), (0.25, 0.55, 0.35))
+        ft = math.radians(FIRE_CENTRE)
+        fire = box("FireplaceMarker", 1.20, 1.40, 0.40,
+                   ((R - 0.2) * math.sin(ft), 0.0, -(R - 0.2) * math.cos(ft) - SEAT_Z),
+                   (0.55, 0.25, 0.15))
+    else:
+        human = envelope = fire = ""
 
     beams = roof_structure()
     sky = skydome()
     shaft = tower_shaft()
     hood = neighbourhood()
     grnd = ground()
+    prp = props()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(f'''#usda 1.0
@@ -681,7 +720,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{shaft}{grnd}{hood}{sky}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{shaft}{grnd}{hood}{sky}{prp}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -696,6 +735,7 @@ def Xform "TowerShell"
     for k, v in sorted(Mesh.flip_by_mesh.items(), key=lambda kv: -kv[1]):
         print(f"      {k}: {v}")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
+    print(f"  props: {len(PROPS)} placed" + ("" if SHOW_AIDS else "; blockout aids off (TOWER_AIDS=1 to show)"))
     print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "
           f"{(R + WALL_THICK) * SHAFT_BATTER * 2:.1f} m across at the base")

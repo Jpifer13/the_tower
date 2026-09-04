@@ -35,6 +35,26 @@ def Xform "Preview"
         uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
     }
 
+    # Standing back, whole room with furniture.
+    def Camera "RoomWide"
+    {
+        float focalLength = 13
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-8, 0, 0)
+        double3 xformOp:translate = (0, 1.70, 3.60)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
+    # Seated, looking at the desk and the props on it.
+    def Camera "AtDesk"
+    {
+        float focalLength = 15
+        float horizontalAperture = 36
+        float3 xformOp:rotateXYZ = (-14, 0, 0)
+        double3 xformOp:translate = (0, 1.15, 0.35)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }
+
     # Seated at the desk, looking at the wall — what you actually see most of the time.
     def Camera "Seated"
     {
