@@ -18,6 +18,9 @@ ROOT = Path(bpy.path.abspath("//")) if bpy.data.filepath else Path.cwd()
 KITS = {
     "props": ("assets/source/quaternius-fantasy-props/Exports/glTF", "props"),
     "village": ("assets/source/Medieval Village MegaKit[Standard]/glTF", "village"),
+    # Whole buildings rather than a kit of parts. This pack ships FBX/OBJ/Blend
+    # and no glTF, which is why the importer below dispatches on extension.
+    "houses": ("assets/source/quaternius-medieval-village-pack", "houses"),
 }
 KIT = os.environ.get("TOWER_KIT", "props")
 SRC = Path(KITS[KIT][0])
@@ -35,13 +38,35 @@ names = argv or SHORTLIST
 
 OUT.mkdir(parents=True, exist_ok=True)
 ok, failed = [], []
+# glTF is preferred where a pack offers it -- it carries material and texture
+# bindings most reliably -- but not every pack does, so fall back in order.
+IMPORTERS = [
+    (".gltf", lambda f: bpy.ops.import_scene.gltf(filepath=f)),
+    (".glb", lambda f: bpy.ops.import_scene.gltf(filepath=f)),
+    (".fbx", lambda f: bpy.ops.import_scene.fbx(filepath=f)),
+    (".obj", lambda f: bpy.ops.wm.obj_import(filepath=f)),
+]
+
+
+def find_source(name):
+    """First matching file for this name, searching the kit folder recursively."""
+    for suffix, importer in IMPORTERS:
+        direct = SRC / f"{name}{suffix}"
+        if direct.exists():
+            return direct, importer
+        hits = sorted(SRC.rglob(f"{name}{suffix}"))
+        if hits:
+            return hits[0], importer
+    return None, None
+
+
 for name in names:
-    src = SRC / f"{name}.gltf"
-    if not src.exists():
+    src, importer = find_source(name)
+    if src is None:
         failed.append((name, "missing")); continue
     bpy.ops.wm.read_factory_settings(use_empty=True)
     try:
-        bpy.ops.import_scene.gltf(filepath=str(src))
+        importer(str(src))
 
         # A roof is placed by its footprint centre, so its origin has to *be*
         # that centre. Roof_RoundTiles_6x4 ships with its origin 2.36 m off,

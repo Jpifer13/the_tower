@@ -39,6 +39,7 @@ window 46 m away.
 | T-100 | Fire flipbooks 4K/8K 6x6 | (superseded) | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⏸ unused |
 | T-101 | Kenney Particle Pack — flame_02 | hearth fire particles | kenney.nl | $0 | CC0 | `licenses/kenney-particle-pack/` | ✅ |
 | M-200 | Quaternius Medieval Village MegaKit (28 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
+| M-201 | Quaternius Medieval Village Pack (44 models, whole buildings) | exterior village | quaternius.com | $0 | CC0 — confirmed, pack's own License.txt | `licenses/quaternius-medieval-village-pack/` | ⏳ awaiting download |
 
 ## Audio
 
