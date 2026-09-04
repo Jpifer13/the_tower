@@ -111,3 +111,18 @@ Notes:
   edit at a different building.
 - The lit window panes are still placed procedurally, so moving a wall a long way
   can leave its pane behind.
+
+## Village style
+
+The houses are whole buildings from the Quaternius Medieval Village Pack, placed
+one per plot. There is nothing to assemble and nothing to bake:
+
+```
+TOWER_VILLAGE=prebuilt   # default — whole buildings, no bake step
+TOWER_VILLAGE=modular    # the old kit-of-parts houses, needs merge_town.py
+```
+
+The pack has only three usable house models, so they are chosen in runs of two to
+four along a street, which reads as a terrace built in one go rather than a
+shuffled deck. `merge_town.py` and `edit_house.py` only apply to the modular
+style; in prebuilt there are no modules to bake or rearrange.

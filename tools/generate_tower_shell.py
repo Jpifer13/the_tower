@@ -1013,6 +1013,25 @@ VILLAGE_TURN    = -18.0    # deg the village is rotated, so streets are not squa
 # hence LANDMARK_SCALE. `base` is each model's lowest point: the mill sits 1.7 m
 # below its own origin and would otherwise be buried.
 LANDMARK_SCALE  = 2.0
+# Whole houses from the same pack. Only four exist, so they repeat -- but built in
+# runs of two to four they read as a terrace raised in one go, which is how a real
+# street of this age looks, rather than as a shuffled deck.
+VILLAGE_STYLE   = os.environ.get("TOWER_VILLAGE", "prebuilt")   # or "modular"
+# width, depth, height, and how far the model's origin sits from its own footprint
+# centre in z. House_2 is off by 0.36, which at scale puts its front wall 0.7 m
+# from where the plot thinks it is -- enough to leave a lit pane hanging in air.
+PACK_HOUSES = {
+    "House_1": (2.14, 2.66, 3.39, -0.013),
+    "House_2": (2.22, 3.42, 3.25, -0.361),
+    "House_3": (1.94, 2.12, 2.09, +0.004),
+    "House_4": (1.94, 2.12, 1.07, +0.000),   # 2 m at scale: a shed, unused
+}
+# House_3 is a plain grey box and House_4 a 2 m shed; at a third of the village
+# they read as unfinished. The two half-timbered models carry it, with House_3
+# occasional for variety and House_4 dropped.
+HOUSE_PICKS = ["House_1", "House_1", "House_1",
+               "House_2", "House_2", "House_2", "House_3"]
+HOUSE_RUN = (2, 4)
 # name, village x, village z, yaw, width, depth, base y
 LANDMARKS = [
     ("Inn",        -15.0,  -8.5,    0.0, 4.03, 4.02, -0.006),
@@ -1021,7 +1040,9 @@ LANDMARKS = [
     ("Sawmill",     15.0,  -7.8,    0.0, 4.40, 3.28, -0.052),
     ("Mill",        -7.9,  20.0,   90.0, 3.40, 2.62, -1.679),
     ("Bell_Tower",   6.2,  -6.2,    0.0, 1.94, 2.23,  0.000),
-    ("Well",         5.0,   5.0,    0.0, 0.67, 1.00, -0.252),
+    # Dead centre of the square, where the two streets cross -- which is exactly
+    # where a market well or cross stands.
+    ("Well",         0.0,   0.0,    0.0, 0.67, 1.00, -0.252),
 ]
 
 
@@ -1096,8 +1117,9 @@ def village_layout():
                 return False
             if axis == "z" and abs(cx - fixed) < width + hx:
                 return False
+        gap = 0.3 if VILLAGE_STYLE == "prebuilt" else 0.5
         for ox, oz, ohx, ohz in taken:
-            if abs(cx - ox) < hx + ohx + 0.5 and abs(cz - oz) < hz + ohz + 0.5:
+            if abs(cx - ox) < hx + ohx + gap and abs(cz - oz) < hz + ohz + gap:
                 return False
         return True
 
@@ -1105,8 +1127,20 @@ def village_layout():
         half_street = (STREET_W if fixed == 0.0 else LANE_W) / 2.0
         for side in (-1, 1):
             pos = -span
+            run_left, model = 0, None
             while pos < span:
-                w, d = rng.choice(roofs)
+                if VILLAGE_STYLE == "prebuilt":
+                    # Hold one model for a few plots so the street reads as a
+                    # terrace built in one go rather than a shuffled deck.
+                    if run_left <= 0:
+                        model = rng.choice(HOUSE_PICKS)
+                        run_left = rng.randint(*HOUSE_RUN)
+                    run_left -= 1
+                    mw, md = PACK_HOUSES[model][:2]
+                    w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
+                else:
+                    model = None
+                    w, d = rng.choice(roofs)
                 # The house's width always runs along the street; its depth always
                 # runs away from it. Getting these the wrong way round on the
                 # cross lanes is what jammed the houses into each other.
@@ -1125,7 +1159,7 @@ def village_layout():
                 if free(cx, cz, hx, hz):
                     taken.append((cx, cz, hx, hz))
                     plots.append({
-                        "vx": cx, "vz": cz, "w": w, "d": d,
+                        "vx": cx, "vz": cz, "w": w, "d": d, "model": model,
                         "storeys": rng.choice([2, 2, 3, 3, 3, 4, 1]),
                         # The village grid is turned, so a house built square
                         # to it stands 18 degrees off the street it faces.
@@ -1141,11 +1175,17 @@ def village_layout():
     # Infill. Street frontages alone leave the blocks hollow, and everything
     # square to the grid looks planned rather than grown. These sit at any angle
     # in whatever space is left.
-    for _ in range(2500):
+    for _ in range(7000):
         ang = rng.uniform(0, 2 * math.pi)
-        rad = math.sqrt(rng.random()) * (WALL_RADIUS - 7.0)
+        rad = math.sqrt(rng.random()) * (WALL_RADIUS - 3.5)
         cx, cz = rad * math.sin(ang), rad * math.cos(ang)
-        w, d = rng.choice(infill_roofs)
+        if VILLAGE_STYLE == "prebuilt":
+            model = rng.choice(HOUSE_PICKS)
+            mw, md = PACK_HOUSES[model][:2]
+            w, d = mw * LANDMARK_SCALE, md * LANDMARK_SCALE
+        else:
+            model = None
+            w, d = rng.choice(infill_roofs)
         yaw = rng.uniform(0, 360)
         # Conservative half-extents, since the footprint is turned freely.
         half = max(w, d) / 2.0
@@ -1153,7 +1193,7 @@ def village_layout():
             continue
         taken.append((cx, cz, half, half))
         plots.append({
-            "vx": cx, "vz": cz, "w": w, "d": d,
+            "vx": cx, "vz": cz, "w": w, "d": d, "model": model,
             "storeys": rng.choice([1, 2, 2, 3, 3]),
             "yaw": yaw - VILLAGE_TURN,
             "brick": rng.random() < 0.5,
@@ -1560,6 +1600,16 @@ def write_lamp_pool_texture():
 def village_lamps():
     """Street lamps. Emissive only — thirty more point lights would cost far more
     than they are worth for something forty metres away behind glass."""
+    def in_street(vx, vz):
+        """True if this spot falls inside a street corridor."""
+        for axis, fixed, span in STREETS:
+            half = (STREET_W if fixed == 0.0 else LANE_W) / 2.0
+            if axis == "x" and abs(vz - fixed) < half and abs(vx) <= span:
+                return True
+            if axis == "z" and abs(vx - fixed) < half and abs(vz) <= span:
+                return True
+        return False
+
     write_lamp_pool_texture()
     posts = Mesh("LampPosts", (0.16, 0.15, 0.14), texture="roof", tint=(0.30, 0.28, 0.26))
     glows = []
@@ -1577,6 +1627,13 @@ def village_lamps():
         a = 2.0 * math.pi * k / SQUARE_LAMPS
         spots.append((math.cos(a) * (SQUARE_HALF - 2.2),
                       math.sin(a) * (SQUARE_HALF - 2.2)))
+
+    # Lamps belong on the verge. Nine of them -- four arms of the square's ring and
+    # the lane lamps where they cross a street -- stood in the middle of the road.
+    dropped = sum(1 for spot in spots if in_street(*spot))
+    spots = [spot for spot in spots if not in_street(*spot)]
+    if dropped:
+        print(f"  lamps: {len(spots)} kept, {dropped} dropped from the roadway")
 
     for index, (vx, vz) in enumerate(spots):
         wx, wz = village_to_world(vx, vz)
@@ -1674,6 +1731,29 @@ def village():
                     (px - tx * 0.50, cy + 0.62, pz - tz * 0.50)],
                    (wnx, 0.0, wnz))
 
+        if plot.get("model"):
+            # A whole building: nothing to assemble, and RealityKit shares one
+            # mesh between every plot using this model.
+            mh = PACK_HOUSES[plot["model"]][2] * LANDMARK_SCALE
+            front = -d / 2.0 + PACK_HOUSES[plot["model"]][3] * LANDMARK_SCALE
+            out.append(f'''    def "Home{index:02d}" (
+        prepend references = @houses/{plot["model"]}.usdc@
+    )
+    {{
+        double3 xformOp:translate = ({cx:.3f}, {ground_y:.3f}, {cz:.3f})
+        float3 xformOp:rotateXYZ = (0, {yaw:.1f}, 0)
+        float3 xformOp:scale = ({LANDMARK_SCALE}, {LANDMARK_SCALE}, {LANDMARK_SCALE})
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }}
+''')
+            # These models have windows drawn on solid walls rather than openings,
+            # so a light inside would never show. The pane goes on the front at
+            # storey height instead -- approximate, but it is what makes the
+            # village read as inhabited after dark.
+            if plot["model"] != "House_4" and rng.random() < LIT_WINDOW * 2.2:
+                lit_window(0.0, mh * 0.42, front, 0.0, -1.0)
+            continue
+
         brick = plot["brick"]
         wall = "Wall_UnevenBrick_Straight" if brick else "Wall_Plaster_Straight"
         if plot["timber"] and not brick:
@@ -1760,9 +1840,14 @@ def village():
     total = sum(len(v) for v in placements.values())
     baked = sum(1 for g in placements
                 if (OUT.parent / "village" / "merged" / f"{g}.usdc").exists())
-    how = (f"batched into {baked} baked meshes" if MERGED and baked
-           else "UNBATCHED -- run tools/merge_town.py")
-    print(f"  town: {total} module placements in {len(placements)} buildings, {how}")
+    if not total:
+        # Prebuilt houses are whole buildings; there is nothing to assemble and so
+        # nothing to bake.
+        print("  town: whole-building houses, no modules to bake")
+    else:
+        how = (f"batched into {baked} baked meshes" if MERGED and baked
+               else "UNBATCHED -- run tools/merge_town.py")
+        print(f"  town: {total} module placements in {len(placements)} buildings, {how}")
     # The landmarks are whole buildings, so they are plain references: nothing to
     # assemble, and RealityKit shares one mesh between every use of a model.
     for name, vx, vz, yaw, _w, _d, base in LANDMARKS:
