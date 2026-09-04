@@ -34,8 +34,9 @@ fetch_tex wall  castle_wall_slates
 GRAY="/System/Library/ColorSync/Profiles/Generic Gray Gamma 2.2 Profile.icc"
 SRGB=$(ls /System/Library/ColorSync/Profiles/sRGB*.icc 2>/dev/null | head -1)
 if [ -f "$RK/wall_diff.jpg" ] && [ -f "$GRAY" ] && [ -n "$SRGB" ]; then
-  sips -M "$GRAY" "$RK/wall_diff.jpg" --out /tmp/_wall_g.jpg >/dev/null 2>&1
-  sips -M "$SRGB" /tmp/_wall_g.jpg --out "$RK/wall_diff.jpg" >/dev/null 2>&1
+  # NB: sips -M silently does nothing here. --matchTo is the flag that works.
+  sips --matchTo "$GRAY" "$RK/wall_diff.jpg" --out /tmp/_wall_g.jpg >/dev/null 2>&1
+  sips --matchTo "$SRGB" /tmp/_wall_g.jpg --out "$RK/wall_diff.jpg" >/dev/null 2>&1
   rm -f /tmp/_wall_g.jpg
   echo "    wall diffuse desaturated"
 fi
@@ -50,7 +51,12 @@ for pair in "kloofendal_38d_partly_cloudy:sky_day" "rogland_sunset:sky_sunset" \
   src="assets/hdri/${pair%%:*}-4k.hdr"; dst="$RK/${pair##*:}.jpg"
   [ -f "$dst" ] && { echo "    ${pair##*:} already present"; continue; }
   [ -f "$src" ] || { echo "    !! missing $src"; continue; }
-  sips -s format jpeg -s formatOptions 82 "$src" --out "$dst" >/dev/null 2>&1
+  # RealityKit needs sRGB: sips defaults HDR conversions to Display P3, and the
+  # skydome then fails to load, leaving passthrough showing through the window.
+  sips -s format jpeg "$src" --out /tmp/_sky_a.jpg >/dev/null 2>&1
+  sips -Z 2048 /tmp/_sky_a.jpg --out /tmp/_sky_b.jpg >/dev/null 2>&1
+  sips --matchTo "$SRGB" /tmp/_sky_b.jpg --out "$dst" >/dev/null 2>&1
+  rm -f /tmp/_sky_a.jpg /tmp/_sky_b.jpg
   echo "    ${pair##*:}"
 done
 

@@ -61,7 +61,7 @@ WALL_TEXTURE  = os.environ.get("TOWER_WALL_TEX", "wall")
 # only darkens and cools. Override to taste, e.g.
 #   TOWER_WALL_TINT=0.5,0.6,0.85 python3 tools/generate_tower_shell.py
 WALL_TINT     = tuple(float(v) for v in
-                      os.environ.get("TOWER_WALL_TINT", "0.58,0.68,0.88").split(","))
+                      os.environ.get("TOWER_WALL_TINT", "0.80,0.84,0.92").split(","))
 OUT_NAME      = os.environ.get("TOWER_OUT", "TowerShell.usda")
 
 OUT = (Path(__file__).parent.parent
