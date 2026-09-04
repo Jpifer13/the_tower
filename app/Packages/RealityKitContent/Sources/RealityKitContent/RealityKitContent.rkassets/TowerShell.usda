@@ -784,9 +784,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 0.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_0Mat"
+    def Material "Flame_0_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_0Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_0_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -797,7 +797,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_0"
+    def Mesh "Flame_0_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -809,14 +809,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_0Mat>
+        rel material:binding = </TowerShell/Flame_0_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (0.6780, 1.1700, -0.9500)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_1Mat"
+    def Material "Flame_0_1Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_1Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_0_1Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -827,7 +827,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_1"
+    def Mesh "Flame_0_1"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -839,14 +839,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_1Mat>
+        rel material:binding = </TowerShell/Flame_0_1Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (0.8500, 1.2900, -0.9500)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_2Mat"
+    def Material "Flame_0_2Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_2Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_0_2Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -857,7 +857,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_2"
+    def Mesh "Flame_0_2"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -869,7 +869,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_2Mat>
+        rel material:binding = </TowerShell/Flame_0_2Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (1.0220, 1.1700, -0.9500)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -882,9 +882,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 0.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_3Mat"
+    def Material "Flame_1_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_3Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_1_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -895,7 +895,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_3"
+    def Mesh "Flame_1_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -907,7 +907,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_3Mat>
+        rel material:binding = </TowerShell/Flame_1_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (1.3500, 0.9600, -0.8000)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -920,9 +920,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 20.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_4Mat"
+    def Material "Flame_2_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_4Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_2_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -933,7 +933,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_4"
+    def Mesh "Flame_2_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -945,7 +945,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_4Mat>
+        rel material:binding = </TowerShell/Flame_2_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-0.9500, 1.0800, -1.0500)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -958,9 +958,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 0.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_5Mat"
+    def Material "Flame_3_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_5Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_3_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -971,7 +971,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_5"
+    def Mesh "Flame_3_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -983,7 +983,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_5Mat>
+        rel material:binding = </TowerShell/Flame_3_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-2.7400, 0.8700, 5.2000)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -996,9 +996,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 25.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_6Mat"
+    def Material "Flame_4_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_6Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1009,7 +1009,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_6"
+    def Mesh "Flame_4_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1021,14 +1021,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_6Mat>
+        rel material:binding = </TowerShell/Flame_4_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-2.9000, 1.3200, 1.7100)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_7Mat"
+    def Material "Flame_4_1Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_7Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_1Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1039,7 +1039,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_7"
+    def Mesh "Flame_4_1"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1051,14 +1051,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_7Mat>
+        rel material:binding = </TowerShell/Flame_4_1Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-2.6320, 1.3200, 1.5550)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_8Mat"
+    def Material "Flame_4_2Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_8Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_2Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1069,7 +1069,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_8"
+    def Mesh "Flame_4_2"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1081,14 +1081,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_8Mat>
+        rel material:binding = </TowerShell/Flame_4_2Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-2.6320, 1.3200, 1.2450)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_9Mat"
+    def Material "Flame_4_3Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_9Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_3Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1099,7 +1099,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_9"
+    def Mesh "Flame_4_3"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1111,14 +1111,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_9Mat>
+        rel material:binding = </TowerShell/Flame_4_3Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-2.9000, 1.3200, 1.0900)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_10Mat"
+    def Material "Flame_4_4Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_10Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_4Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1129,7 +1129,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_10"
+    def Mesh "Flame_4_4"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1141,14 +1141,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_10Mat>
+        rel material:binding = </TowerShell/Flame_4_4Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-3.1680, 1.3200, 1.2450)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_11Mat"
+    def Material "Flame_4_5Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_11Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_4_5Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1159,7 +1159,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_11"
+    def Mesh "Flame_4_5"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1171,7 +1171,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_11Mat>
+        rel material:binding = </TowerShell/Flame_4_5Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-3.1680, 1.3200, 1.5550)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -1184,9 +1184,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, -20.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_12Mat"
+    def Material "Flame_5_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_12Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1197,7 +1197,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_12"
+    def Mesh "Flame_5_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1209,14 +1209,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_12Mat>
+        rel material:binding = </TowerShell/Flame_5_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.7000, 1.3200, 4.6100)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_13Mat"
+    def Material "Flame_5_1Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_13Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_1Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1227,7 +1227,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_13"
+    def Mesh "Flame_5_1"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1239,14 +1239,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_13Mat>
+        rel material:binding = </TowerShell/Flame_5_1Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.9680, 1.3200, 4.4550)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_14Mat"
+    def Material "Flame_5_2Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_14Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_2Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1257,7 +1257,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_14"
+    def Mesh "Flame_5_2"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1269,14 +1269,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_14Mat>
+        rel material:binding = </TowerShell/Flame_5_2Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.9680, 1.3200, 4.1450)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_15Mat"
+    def Material "Flame_5_3Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_15Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_3Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1287,7 +1287,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_15"
+    def Mesh "Flame_5_3"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1299,14 +1299,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_15Mat>
+        rel material:binding = </TowerShell/Flame_5_3Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.7000, 1.3200, 3.9900)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_16Mat"
+    def Material "Flame_5_4Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_16Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_4Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1317,7 +1317,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_16"
+    def Mesh "Flame_5_4"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1329,14 +1329,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_16Mat>
+        rel material:binding = </TowerShell/Flame_5_4Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.4320, 1.3200, 4.1450)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_17Mat"
+    def Material "Flame_5_5Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_17Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_5_5Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1347,7 +1347,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_17"
+    def Mesh "Flame_5_5"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1359,7 +1359,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_17Mat>
+        rel material:binding = </TowerShell/Flame_5_5Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (2.4320, 1.3200, 4.4550)
         uniform token[] xformOpOrder = ["xformOp:translate"]
@@ -1372,9 +1372,9 @@ def Xform "TowerShell"
         float3 xformOp:rotateXYZ = (0, 0.0, 0)
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }
-    def Material "Flame_18Mat"
+    def Material "Flame_6_0Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_18Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_6_0Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1385,7 +1385,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_18"
+    def Mesh "Flame_6_0"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1397,14 +1397,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_18Mat>
+        rel material:binding = </TowerShell/Flame_6_0Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (0.0000, 3.5200, 3.1720)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_19Mat"
+    def Material "Flame_6_1Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_19Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_6_1Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1415,7 +1415,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_19"
+    def Mesh "Flame_6_1"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1427,14 +1427,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_19Mat>
+        rel material:binding = </TowerShell/Flame_6_1Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (0.2220, 3.5200, 2.9500)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_20Mat"
+    def Material "Flame_6_2Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_20Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_6_2Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1445,7 +1445,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_20"
+    def Mesh "Flame_6_2"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1457,14 +1457,14 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_20Mat>
+        rel material:binding = </TowerShell/Flame_6_2Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (0.0000, 3.5200, 2.7280)
         uniform token[] xformOpOrder = ["xformOp:translate"]
     }
-    def Material "Flame_21Mat"
+    def Material "Flame_6_3Mat"
     {
-        token outputs:surface.connect = </TowerShell/Flame_21Mat/Surface.outputs:surface>
+        token outputs:surface.connect = </TowerShell/Flame_6_3Mat/Surface.outputs:surface>
         def Shader "Surface"
         {
             uniform token info:id = "UsdPreviewSurface"
@@ -1475,7 +1475,7 @@ def Xform "TowerShell"
             token outputs:surface
         }
     }
-    def Mesh "Flame_21"
+    def Mesh "Flame_6_3"
     {
         uniform bool doubleSided = 1
         float3[] extent = [(-0.0160, -0.0160, -0.0160), (0.0160, 0.0160, 0.0160)]
@@ -1487,7 +1487,7 @@ def Xform "TowerShell"
             interpolation = "vertex"
         )
         color3f[] primvars:displayColor = [(1.0, 0.78, 0.42)]
-        rel material:binding = </TowerShell/Flame_21Mat>
+        rel material:binding = </TowerShell/Flame_6_3Mat>
         uniform token subdivisionScheme = "none"
         double3 xformOp:translate = (-0.2220, 3.5200, 2.9500)
         uniform token[] xformOpOrder = ["xformOp:translate"]

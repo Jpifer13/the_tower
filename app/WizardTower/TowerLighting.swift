@@ -19,24 +19,26 @@ struct LightingState: Equatable {
 /// The room's lights, held so they can be re-aimed as the day moves rather than
 /// rebuilt. The window is the primary source: image-based lighting generated from
 /// the same sky visible through the opening, plus a directional sun or moon.
+/// A candle's single light, and how bright it should be for its number of wicks.
+private struct CandleLight {
+    let entity: Entity
+    let intensity: Float
+}
+
 @MainActor
 final class LightRig {
 
     let root = Entity()
 
-    /// Every flame glows, but only the nearest few carry a light — 22 point lights
-    /// is more than the room needs and more than the device should pay for. The
-    /// rest still read as flames because the geometry is emissive.
-    private static let maxLitFlames = 10
-    /// Base brightness of one candle flame. RealityKit's default point light is
-    /// around 27,000, so candle values live in the low thousands — a few hundred
-    /// glows without lighting anything.
-    private static let flameIntensity: Float = 3800
-
+    /// One light per candle, not per wick. A six-cup candelabra reads the same lit
+    /// by a single source at its centre, and 22 point lights is more than the room
+    /// needs or the device should pay for. Every candle gets one, so none is dark.
+    private static let flameIntensity: Float = 2600
     private let sun = Entity()
     private var iblEntity: Entity?
     private var chandelierLight: Entity?
     private var flames: [Entity] = []
+    private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
     private var appliedSky: TimeOfDay?
     private var appliedCandles: Bool?
@@ -145,24 +147,21 @@ final class LightRig {
         let flameColor = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
 
         if flames.isEmpty {
-            // Nearest the seat first, so the lights land where you actually are.
             flames = Self.findFlames(in: scene)
-                .sorted { simd_length($0.position(relativeTo: nil))
-                        < simd_length($1.position(relativeTo: nil)) }
-            log.info("found \(self.flames.count) flames, lighting \(min(self.flames.count, Self.maxLitFlames))")
+            candleLights = Self.makeCandleLights(from: flames, color: flameColor)
+            candleLights.forEach { root.addChild($0.entity) }
+            log.info("\(self.flames.count) flames in \(self.candleLights.count) candles")
         }
 
-        for (index, entity) in flames.enumerated() {
-            entity.isEnabled = lit
-            guard lit, index < Self.maxLitFlames else {
-                entity.components.remove(PointLightComponent.self)
-                continue
-            }
+        flames.forEach { $0.isEnabled = lit }
+        for candle in candleLights {
+            candle.entity.isEnabled = lit
+            guard lit else { continue }
             var light = PointLightComponent()
-            light.intensity = Self.flameIntensity
-            light.attenuationRadius = 4.5
+            light.intensity = candle.intensity
+            light.attenuationRadius = 5.0
             light.color = flameColor
-            entity.components.set(light)
+            candle.entity.components.set(light)
         }
 
         guard appliedCandles != lit else { return }
@@ -178,11 +177,8 @@ final class LightRig {
 
         // One spot light under the chandelier, because point lights cannot cast
         // shadows at all and the room needs at least one warm source that does.
-        // Positioned from the chandelier's own flames rather than a second constant.
         if chandelierLight == nil,
-           let hang = Self.findFlames(in: scene)
-               .map({ $0.position(relativeTo: nil) })
-               .filter({ $0.y > 2.5 })
+           let hang = candleLights.map({ $0.entity.position }).filter({ $0.y > 2.5 })
                .max(by: { $0.y < $1.y }) {
             let entity = Entity()
             entity.name = "ChandelierLight"
@@ -202,6 +198,30 @@ final class LightRig {
         startFlickering()
     }
 
+    /// One light per candle, placed at the centre of its wicks and brightened for
+    /// how many it stands in for — but sub-linearly, or a six-cup stand would
+    /// out-shine everything else in the room.
+    private static func makeCandleLights(from flames: [Entity],
+                                         color: UIColor) -> [CandleLight] {
+        var groups: [Int: [Entity]] = [:]
+        for flame in flames {
+            let parts = flame.name.split(separator: "_")
+            guard parts.count >= 2, let group = Int(parts[1]) else { continue }
+            groups[group, default: []].append(flame)
+        }
+        return groups.keys.sorted().compactMap { key in
+            guard let members = groups[key], !members.isEmpty else { return nil }
+            let centre = members
+                .map { $0.position(relativeTo: nil) }
+                .reduce(SIMD3<Float>.zero, +) / Float(members.count)
+            let entity = Entity()
+            entity.name = "CandleLight_\(key)"
+            entity.position = centre
+            return CandleLight(entity: entity,
+                               intensity: flameIntensity * sqrt(Float(members.count)))
+        }
+    }
+
     /// Candlelight is never steady. Each flame gets its own phase, so they do not
     /// pulse together — which reads as a fault rather than as fire.
     private func startFlickering() {
@@ -210,16 +230,18 @@ final class LightRig {
             while !Task.isCancelled {
                 guard let self else { return }
                 t += 0.08
-                for (index, entity) in self.flames.enumerated() where entity.isEnabled {
-                    guard var light = entity.components[PointLightComponent.self] else { continue }
+                for (index, candle) in self.candleLights.enumerated()
+                where candle.entity.isEnabled {
+                    guard var light = candle.entity.components[PointLightComponent.self]
+                    else { continue }
                     let phase = Double(index) * 1.7
                     // Slower and deeper than the first attempt, which was
                     // imperceptible: 18% at 5 Hz just reads as steady light.
                     let wobble = sin(t * 2.1 + phase) * 0.55
                         + sin(t * 4.7 + phase * 2.0) * 0.3
                         + sin(t * 9.1 + phase * 3.0) * 0.15
-                    light.intensity = Self.flameIntensity * Float(1.0 + 0.42 * wobble)
-                    entity.components.set(light)
+                    light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
+                    candle.entity.components.set(light)
                 }
                 try? await Task.sleep(for: .milliseconds(80))
             }

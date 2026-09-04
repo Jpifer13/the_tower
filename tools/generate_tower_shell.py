@@ -657,10 +657,9 @@ FLAME_RADIUS = 0.016
 def candles():
     """Candle props, plus a small emissive flame above each wick."""
     out = []
-    flames = Mesh("Flames", (1.0, 0.78, 0.42))
     index = 0
 
-    for name, x, y, z, yaw, offsets in CANDLES:
+    for group, (name, x, y, z, yaw, offsets) in enumerate(CANDLES):
         out.append(f'''    def "{name}_{index}" (
         prepend references = @props/{name}.usdc@
     )
@@ -670,16 +669,17 @@ def candles():
         uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
     }}
 ''')
-        for dx, dy, dz in offsets:
+        for wick, (dx, dy, dz) in enumerate(offsets):
             centre = (x + dx, y + dy, z + dz)
             # Built around the local origin with the position on the prim, so the
             # light Swift attaches lands on the flame rather than at (0, 0, 0).
-            flame = Mesh(f"Flame_{index}", (1.0, 0.78, 0.42), translate=centre)
+            # Named by candle, then wick: Swift gives each candle one light rather
+            # than one per flame, so a six-cup candelabra costs a single light.
+            flame = Mesh(f"Flame_{group}_{wick}", (1.0, 0.78, 0.42), translate=centre)
             sphere(flame, (0.0, 0.0, 0.0), FLAME_RADIUS, 8, 6)
             out.append(flame.material_usda() + flame.usda())
             index += 1
 
-    _ = flames
     return "".join(out)
 
 
