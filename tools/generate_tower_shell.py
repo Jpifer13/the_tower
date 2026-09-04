@@ -163,6 +163,8 @@ class Mesh:
             return self._sky_material(indent)
         if self.name == "Glass":
             return self._glass_material(indent)
+        if self.name.startswith("Flame"):
+            return self._flame_material(indent)
         if self.texture:
             return self._textured_material(indent)
         return self._flat_material(indent)
@@ -276,6 +278,24 @@ class Mesh:
 {i}        float inputs:roughness = 0.06
 {i}        float inputs:opacity = {GLASS_OPACITY}
 {i}        float inputs:ior = 1.5
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _flame_material(self, indent):
+        """Emissive, so the flame reads as the source rather than as a lit object."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.05, 0.03, 0.01)
+{i}        color3f inputs:emissiveColor = (2.0, 1.15, 0.42)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 1
 {i}        token outputs:surface
 {i}    }}
 {i}}}
@@ -597,14 +617,75 @@ PROPS = [
     ("Shelf_Arch",       -3.30, 0.00,  2.60,  90.0),
     ("Chest_Wood",       -2.60, 0.00,  5.20,  30.0),
     ("Stool",             2.30, 0.00,  4.20,   0.0),
-    ("CandleStick_Triple", 0.85, 0.81, -0.95,  0.0),
     ("Book_Stack_1",     -0.80, 0.81, -0.90,  15.0),
     ("BookGroup_Medium_1", 0.00, 0.81, -1.15, -8.0),
     ("Scroll_1",          0.35, 0.81, -0.70,  40.0),
     ("Potion_1",         -1.15, 0.81, -0.75,   0.0),
-    ("Candle_1",          1.35, 0.81, -0.80,   0.0),
     ("Chandelier",        0.00, 4.30,  2.95,   0.0),
 ]
+
+
+# Candles. Each entry places a prop and puts flames above it. The flame prims are
+# named Flame_N, and Swift finds them by name to hang the lights on — so positions
+# live here only, rather than being duplicated in TowerLighting.
+# (prop, x, y, z, yaw, [(dx, dy, dz) per flame])
+CANDLES = [
+    ("CandleStick_Triple", 0.85, 0.81, -0.95,   0.0,
+     [(-0.155, 0.17, 0.0), (0.0, 0.20, 0.0), (0.155, 0.17, 0.0)]),
+    ("Candle_1",           1.35, 0.81, -0.80,   0.0, [(0.0, 0.15, 0.0)]),
+    ("Candle_2",          -0.95, 0.81, -1.05,  20.0, [(0.0, 0.27, 0.0)]),
+    ("CandleStick",       -2.60, 0.69,  5.20,   0.0, [(0.0, 0.18, 0.0)]),   # on the chest
+    ("CandleStick_Stand", -2.90, 0.00,  1.40,  25.0, [(0.0, 1.33, 0.0)]),
+    ("CandleStick_Stand",  2.70, 0.00,  4.30, -20.0, [(0.0, 1.33, 0.0)]),
+]
+
+FLAME_RADIUS = 0.016
+
+
+def candles():
+    """Candle props, plus a small emissive flame above each wick."""
+    out = []
+    flames = Mesh("Flames", (1.0, 0.78, 0.42))
+    index = 0
+
+    for name, x, y, z, yaw, offsets in CANDLES:
+        out.append(f'''    def "{name}_{index}" (
+        prepend references = @props/{name}.usdc@
+    )
+    {{
+        double3 xformOp:translate = ({x}, {y}, {z})
+        float3 xformOp:rotateXYZ = (0, {yaw}, 0)
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+    }}
+''')
+        for dx, dy, dz in offsets:
+            centre = (x + dx, y + dy, z + dz)
+            flame = Mesh(f"Flame_{index}", (1.0, 0.78, 0.42))
+            sphere(flame, centre, FLAME_RADIUS, 8, 6)
+            out.append(flame.material_usda() + flame.usda())
+            index += 1
+
+    _ = flames
+    return "".join(out)
+
+
+def sphere(mesh, centre, radius, segments, rings):
+    """Low-poly sphere. Small enough that eight segments is plenty."""
+    for iy in range(rings):
+        ph0 = math.pi * iy / rings
+        ph1 = math.pi * (iy + 1) / rings
+        for ix in range(segments):
+            th0 = 2.0 * math.pi * ix / segments
+            th1 = 2.0 * math.pi * (ix + 1) / segments
+
+            def pt(ph, th):
+                return (centre[0] + radius * math.sin(ph) * math.sin(th),
+                        centre[1] + radius * math.cos(ph),
+                        centre[2] + radius * math.sin(ph) * math.cos(th))
+
+            quad = [pt(ph0, th0), pt(ph0, th1), pt(ph1, th1), pt(ph1, th0)]
+            nrm = [tuple((c[k] - centre[k]) / radius for k in range(3)) for c in quad]
+            mesh.face(quad, nrm, [(0, 0), (1, 0), (1, 1), (0, 1)])
 
 
 def props():
@@ -763,6 +844,7 @@ def main():
     hood = neighbourhood()
     grnd = ground()
     prp = props()
+    cnd = candles()
 
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(f'''#usda 1.0
@@ -779,7 +861,7 @@ def main():
 
 def Xform "TowerShell"
 {{
-{shell}{beams}{shaft}{grnd}{hood}{sky}{prp}{desk}{fire}{human}{envelope}}}
+{shell}{beams}{shaft}{grnd}{hood}{sky}{prp}{cnd}{desk}{fire}{human}{envelope}}}
 ''')
     print(f"wrote {OUT.relative_to(Path(__file__).parent.parent)}")
     print(f"  {DIAMETER} m across ({DIAMETER / FT:.1f} ft)")
@@ -794,6 +876,8 @@ def Xform "TowerShell"
     for k, v in sorted(Mesh.flip_by_mesh.items(), key=lambda kv: -kv[1]):
         print(f"      {k}: {v}")
     print(f"  sky: {SKY_TEXTURE}, room {TOWER_ELEV:.0f} m above the ground")
+    print(f"  candles: {len(CANDLES)} props, "
+          f"{sum(len(c[5]) for c in CANDLES)} flames")
     print(f"  props: {len(PROPS)} placed" + ("" if SHOW_AIDS else "; blockout aids off (TOWER_AIDS=1 to show)"))
     print(f"  neighbours: {len(NEIGHBOURS)} roofs below, {min(n[1] for n in NEIGHBOURS):.0f}-{max(n[1] for n in NEIGHBOURS):.0f} m out")
     print(f"  shaft: {TOWER_ELEV:.0f} m down to the ground, battered to "

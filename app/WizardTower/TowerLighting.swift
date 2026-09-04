@@ -24,19 +24,20 @@ final class LightRig {
 
     let root = Entity()
 
+    /// Where the chandelier hangs. Every other flame is found in the scene.
+    private static let chandelier = SIMD3<Float>(0, 4.05, 2.95)
+    /// Base brightness of one candle flame. RealityKit's default point light is
+    /// around 27,000, so candle values live in the low thousands — a few hundred
+    /// glows without lighting anything.
+    private static let flameIntensity: Float = 3800
+
     private let sun = Entity()
     private var iblEntity: Entity?
-    private var candleEntities: [Entity] = []
+    private var chandelierLight: Entity?
+    private var flames: [Entity] = []
+    private var flickerTask: Task<Void, Never>?
     private var appliedSky: TimeOfDay?
     private var appliedCandles: Bool?
-
-    /// Candle flames, in the same user-relative space as the props.
-    /// Kept in step with PROPS in tools/generate_tower_shell.py.
-    static let candlePositions: [SIMD3<Float>] = [
-        [0.85, 0.98, -0.95],   // CandleStick_Triple
-        [1.35, 0.90, -0.80],   // Candle_1
-        [0.00, 4.05,  2.95],   // Chandelier
-    ]
 
     init() {
         root.addChild(sun)
@@ -52,7 +53,7 @@ final class LightRig {
         Self.stopGlassCastingShadows(in: scene)
         await applySky(state, to: scene)
         applySun(state)
-        applyCandles(state)
+        applyCandles(state, in: scene)
     }
 
     // MARK: - Window light
@@ -83,13 +84,10 @@ final class LightRig {
                 root.addChild(entity)
                 iblEntity = entity
             }
-            // The receiver is not inherited: setting it on the root leaves every
-            // child lit by the system's own environment light instead, which is
-            // why the room stayed bright no matter how far the exponent dropped.
+            // The receiver is not inherited: setting it on the root alone leaves
+            // every child lit by the system's own environment light instead.
             let count = Self.attachReceiver(to: scene, light: entity)
-            log.info("""
-                image-based light ready for \(state.timeOfDay.rawValue),                 exponent \(state.timeOfDay.iblExponent), \(count) receivers
-                """)
+            log.info("sky \(state.timeOfDay.rawValue), \(count) receivers")
         } catch {
             log.error("EnvironmentResource.generate failed: \(error.localizedDescription)")
         }
@@ -104,7 +102,6 @@ final class LightRig {
         entity.children.forEach { stopGlassCastingShadows(in: $0) }
     }
 
-    /// Apply the receiver to the whole subtree and report how many entities got it.
     @discardableResult
     private static func attachReceiver(to entity: Entity, light: Entity) -> Int {
         entity.components.set(ImageBasedLightReceiverComponent(imageBasedLight: light))
@@ -129,57 +126,94 @@ final class LightRig {
         let elevation = Float(max(state.sunElevation, 3.0)) * .pi / 180
         let distance: Float = 30
         let horizontal = distance * cos(elevation)
-        let position = SIMD3<Float>(horizontal * sin(bearing),
+        sun.look(at: [0, 1.2, 0],
+                 from: SIMD3<Float>(horizontal * sin(bearing),
                                     distance * sin(elevation),
-                                    -horizontal * cos(bearing))
-        sun.look(at: [0, 1.2, 0], from: position, relativeTo: nil)
+                                    -horizontal * cos(bearing)),
+                 relativeTo: nil)
     }
 
     // MARK: - Candles
 
-    private func applyCandles(_ state: LightingState) {
+    /// Flames are found in the scene by name rather than listed here. The generator
+    /// emits a small emissive sphere called Flame_N above every wick, so a candle's
+    /// position lives in one place — move it there and the light follows.
+    private func applyCandles(_ state: LightingState, in scene: Entity) {
         let lit = state.timeOfDay.candlesLit
+        let flameColor = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
+
+        if flames.isEmpty {
+            flames = Self.findFlames(in: scene)
+            log.info("found \(self.flames.count) flames")
+        }
+
+        for entity in flames {
+            entity.isEnabled = lit
+            guard lit else { continue }
+            var light = PointLightComponent()
+            light.intensity = Self.flameIntensity
+            light.attenuationRadius = 4.5
+            light.color = flameColor
+            entity.components.set(light)
+        }
+
         guard appliedCandles != lit else { return }
         appliedCandles = lit
+        flickerTask?.cancel()
+        flickerTask = nil
 
-        candleEntities.forEach { $0.removeFromParent() }
-        candleEntities = []
-        guard lit else { return }
-
-        let flame = UIColor(red: 1.0, green: 0.72, blue: 0.42, alpha: 1)
-
-        // Desk candles: point lights. RealityKit has no PointLightComponent.Shadow,
-        // so these cannot cast — they are fill, not key.
-        for (index, position) in Self.candlePositions.enumerated() where index < 2 {
-            let entity = Entity()
-            entity.name = "Candle\(index)"
-            var light = PointLightComponent()
-            light.intensity = 350
-            light.attenuationRadius = 2.5
-            light.color = flame
-            entity.components.set(light)
-            entity.position = position
-            root.addChild(entity)
-            candleEntities.append(entity)
+        guard lit else {
+            chandelierLight?.removeFromParent()
+            chandelierLight = nil
+            return
         }
 
-        // The chandelier is a spot light, which can cast, so the room gets at
-        // least one warm source throwing shadows.
-        if let hang = Self.candlePositions.last {
+        // The chandelier is a spot light, which can cast shadows. Point lights
+        // cannot — there is no PointLightComponent.Shadow in RealityKit.
+        if chandelierLight == nil {
             let entity = Entity()
-            entity.name = "Chandelier"
+            entity.name = "ChandelierLight"
             var spot = SpotLightComponent()
-            spot.intensity = 4200
-            spot.attenuationRadius = 12.0
+            spot.intensity = 9000
+            spot.attenuationRadius = 11.0
             spot.innerAngleInDegrees = 45
             spot.outerAngleInDegrees = 120
-            spot.color = flame
+            spot.color = flameColor
             entity.components.set(spot)
             entity.components.set(SpotLightComponent.Shadow())
-            entity.position = hang
-            entity.look(at: [hang.x, 0, hang.z], from: hang, relativeTo: nil)
+            entity.position = Self.chandelier
+            entity.look(at: [Self.chandelier.x, 0, Self.chandelier.z],
+                        from: Self.chandelier, relativeTo: nil)
             root.addChild(entity)
-            candleEntities.append(entity)
+            chandelierLight = entity
         }
+        startFlickering()
+    }
+
+    /// Candlelight is never steady. Each flame gets its own phase, so they do not
+    /// pulse together — which reads as a fault rather than as fire.
+    private func startFlickering() {
+        flickerTask = Task { [weak self] in
+            var t = 0.0
+            while !Task.isCancelled {
+                guard let self else { return }
+                t += 0.08
+                for (index, entity) in self.flames.enumerated() where entity.isEnabled {
+                    guard var light = entity.components[PointLightComponent.self] else { continue }
+                    let phase = Double(index) * 1.7
+                    let wobble = sin(t * 5.3 + phase) * 0.5 + sin(t * 11.9 + phase * 2.0) * 0.3
+                    light.intensity = Self.flameIntensity * Float(1.0 + 0.18 * wobble)
+                    entity.components.set(light)
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+        }
+    }
+
+    private static func findFlames(in entity: Entity) -> [Entity] {
+        var found: [Entity] = []
+        if entity.name.hasPrefix("Flame") { found.append(entity) }
+        for child in entity.children { found.append(contentsOf: findFlames(in: child)) }
+        return found
     }
 }
