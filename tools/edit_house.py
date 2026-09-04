@@ -53,8 +53,10 @@ def cmd_export(name):
         sys.exit(f"No such building: {name}. Try `list`.")
     rows = houses[name]
 
-    # Put the house at the origin of the edit file and carry its position on the
-    # root, so it opens somewhere you can actually see rather than 40 m out.
+    # The house is written at the origin, with its place in the town kept in a
+    # sidecar. Carrying it on the root Xform instead composes the house 50 m out
+    # and 26 m below the camera, which in Reality Composer Pro means opening the
+    # file and seeing nothing at all.
     cx = sum(r[1] for r in rows) / len(rows)
     cy = min(r[2] for r in rows)
     cz = sum(r[3] for r in rows) / len(rows)
@@ -75,6 +77,11 @@ def cmd_export(name):
 ''')
 
     EDIT_DIR.mkdir(parents=True, exist_ok=True)
+    # A sidecar rather than layer metadata: Reality Composer Pro rewrites the
+    # file wholesale on save, and anything it does not understand may not come
+    # back. Losing this would silently drop the house at the town's origin.
+    (EDIT_DIR / f"{name}.origin.json").write_text(
+        json.dumps({"origin": [cx, cy, cz]}))
     out = EDIT_DIR / f"{name}.usda"
     out.write_text(f'''#usda 1.0
 (
@@ -86,13 +93,14 @@ def cmd_export(name):
 # Exported by tools/edit_house.py — rearrange the pieces, save, then:
 #     python3 tools/edit_house.py import {name}
 #
-# The root's translate is where the house stands in the town; leave it alone
-# unless you mean to move the whole building. Duplicating a piece is fine — the
-# importer reads whatever references a village module.
+# The house sits at the origin here; where it stands in the town is kept in
+# {name}.origin.json and added back on import. Moving the root moves the whole
+# building. Duplicating a piece is fine — the importer reads whatever
+# references a village module.
 
 def Xform "{name}"
 {{
-    double3 xformOp:translate = ({cx:.4f}, {cy:.4f}, {cz:.4f})
+    double3 xformOp:translate = (0, 0, 0)
     uniform token[] xformOpOrder = ["xformOp:translate"]
 
 {"".join(body)}}}
@@ -132,6 +140,14 @@ def cmd_import(name):
     rt = re.search(r"xformOp:translate\s*=\s*" + VEC, root.group(1)) if root else None
     ox, oy, oz = (float(rt.group(1)), float(rt.group(2)), float(rt.group(3))) if rt \
         else (0.0, 0.0, 0.0)
+
+    # Add back where the house stands in the town. Older exports carried it on
+    # the root instead, in which case the sidecar is absent and ox/oy/oz already
+    # hold it.
+    sidecar = EDIT_DIR / f"{name}.origin.json"
+    if sidecar.exists():
+        cx, cy, cz = json.loads(sidecar.read_text())["origin"]
+        ox, oy, oz = ox + cx, oy + cy, oz + cz
 
     rows, warned = [], set()
     # Every prim that references a village module counts, whatever it is named,

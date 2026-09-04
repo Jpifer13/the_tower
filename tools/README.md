@@ -100,8 +100,10 @@ regeneration, and is tracked in git. Delete it to go back to the generated house
 Notes:
 - Duplicating a piece in RCP works; the importer reads anything that references a
   village module, whatever the prim is called.
-- Leave the root Xform's translate alone unless you mean to move the whole
-  building — it is where the house stands in the town.
+- The house is exported **at the origin**, so it is right in front of the camera
+  when the file opens; press **F** in the viewport to frame it. Where it stands
+  in the town is kept in `app/house-edits/<House>.origin.json` and added back on
+  import. Moving the root Xform moves the whole building.
 - Scaling a piece is dropped: the placement format carries position and rotation
   only, and the importer warns when it sees a scale.
 - Overrides are keyed by building name, and the names come from the procedural
