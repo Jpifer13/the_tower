@@ -100,8 +100,11 @@ Draft: [`docs/design/design-doc.md`](docs/design/design-doc.md)
 - [x] 1.7 m reference figure + walkable envelope included in the shell
 - [x] Offline preview rendering set up (`usdrecord` + `tools/preview_cameras.usda`)
 - [x] Poly budget: **1,178 tris** — 0.24% of the 500K target
-- [ ] Room shell placed, scale checked against 1.7 m reference cube
-- [ ] Furniture rough-positioned
+- [x] Room shell placed, verified in the simulator (walls, floor, conical roof, wall plate)
+- [x] Window: 2 m opening, 0.35 m stone reveal, sill/jambs/head
+- [x] Exterior: skydome, tower shaft to the ground, 5 neighbouring roofs, ground plane
+- [x] Geometry correctness pass — see [`../learning-notes/realitykit-geometry-gotchas.md`](docs/learning-notes/realitykit-geometry-gotchas.md)
+- [ ] Furniture rough-positioned *(needs the Quaternius pack — Phase 3 buy)*
 - [ ] Seated viewpoint entity placed; reviewed from that POV in Simulator
 
 ### Week 2: Light it
