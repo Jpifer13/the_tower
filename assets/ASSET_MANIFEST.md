@@ -32,6 +32,9 @@ metres already; the only fix needed was Z-up → Y-up.
 
 Each set is Diffuse + nor_gl + Rough as 2K JPG, in `RealityKitContent.rkassets/textures/`.
 
+| T-100 | Fire flipbook 4K 6x6 (no smoke) | hearth particles | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⚠ |
+| M-200 | Quaternius Medieval Village MegaKit (176 models) | exterior buildings | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ⏳ unused |
+
 ## Audio
 
 | ID | Sound | Use | Source | Price | License | License folder | Status |

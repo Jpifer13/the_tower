@@ -38,10 +38,10 @@ final class LightRig {
     /// The orb. Cool, steady, and always on — the one light that is not a flame.
     private static let orbIntensity: Float = 5200
 
-    /// Grid of the fire flipbook, if one is supplied. Must match the sheet.
-    /// CGHEVEN's CC0 fire flipbooks are 6x6 or 8x8.
-    private static let flipbookRows = 8
-    private static let flipbookColumns = 8
+    /// Grid of the fire flipbook. Must match the sheet, or frames slide instead of
+    /// animating. Ours is CampFire_l_nosmoke_front_Loop_01_4K_6x6 — a 6x6 grid.
+    private static let flipbookRows = 6
+    private static let flipbookColumns = 6
 
     /// Loads a sprite sheet from the bundle, or nil if none has been added.
     private static func flipbook(named name: String) -> TextureResource? {
@@ -109,24 +109,29 @@ final class LightRig {
         emitter.speedVariation = 0.18
 
         var flame = ParticleEmitterComponent.ParticleEmitter()
-        flame.birthRate = 190
-        flame.birthRateVariation = 40
+        flame.birthRate = 14
+        flame.birthRateVariation = 4
         flame.lifeSpan = 0.85
         flame.lifeSpanVariation = 0.35
-        flame.size = 0.085
-        flame.sizeVariation = 0.035
+        // Bigger and slower with a real texture: one frame is a whole flame, not a
+        // speck, so fewer and larger particles read better than a cloud of them.
+        flame.size = 0.30
+        flame.sizeVariation = 0.08
         flame.acceleration = [0, 0.45, 0]          // convection
         flame.dampingFactor = 1.4
         flame.spreadingAngle = 0.42
         flame.angleVariation = .pi
-        flame.blendMode = .additive                 // fire adds light, never occludes
+        // The sheet carries its own alpha and already looks like fire, so additive
+        // on top blows the bright core out to white. Alpha keeps its shape.
+        flame.blendMode = .alpha
         flame.billboardMode = .billboard
         flame.isLightingEnabled = false             // it is the source, not lit
         flame.opacityCurve = .quickFadeInOut
         // Yellow at the base cooling to red as it rises.
+        // The sheet is already coloured; tint gently rather than recolouring it.
         flame.color = .evolving(
-            start: .single(UIColor(red: 1.0, green: 0.78, blue: 0.28, alpha: 1)),
-            end: .single(UIColor(red: 0.85, green: 0.16, blue: 0.03, alpha: 1)))
+            start: .single(UIColor(red: 1.0, green: 0.92, blue: 0.80, alpha: 1)),
+            end: .single(UIColor(red: 1.0, green: 0.62, blue: 0.30, alpha: 1)))
         // A flipbook, if one has been supplied. RealityKit wants a single sprite
         // sheet in `image` plus the grid in `imageSequence` — not separate frames.
         // Drop a sheet at app/WizardTower/Skies/../fire_flipbook.png and set the
