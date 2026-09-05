@@ -214,6 +214,10 @@ class Mesh:
         # Match "Fire_0", not "Fireplace" — the stone breast is not on fire.
         if self.name.startswith("Fire_"):
             return self._fire_material(indent)
+        if self.name == "OrbShell":
+            return self._orb_shell_material(indent)
+        if self.name.startswith("OrbRing"):
+            return self._orb_ring_material(indent)
         if self.name.startswith("Orb_"):
             return self._orb_material(indent)
         if self.name.startswith("WinGlow"):
@@ -424,6 +428,46 @@ class Mesh:
 {i}}}
 '''
 
+    def _orb_shell_material(self, indent):
+        """The crystal itself. Barely there -- its job is a highlight and a faint
+        tint over what is turning inside, not to be seen in its own right."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.10, 0.22, 0.32)
+{i}        color3f inputs:emissiveColor = (0.34, 0.86, 1.25)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.05
+{i}        float inputs:opacity = 0.22
+{i}        float inputs:ior = 1.6
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
+    def _orb_ring_material(self, indent):
+        """The rings read brighter than the core so they stay legible through the
+        shell; a ring the same value as what is behind it disappears."""
+        i, n = indent, self.name
+        return f'''{i}def Material "{n}Mat"
+{i}{{
+{i}    token outputs:surface.connect = </TowerShell/{n}Mat/Surface.outputs:surface>
+{i}    def Shader "Surface"
+{i}    {{
+{i}        uniform token info:id = "UsdPreviewSurface"
+{i}        color3f inputs:diffuseColor = (0.04, 0.10, 0.14)
+{i}        color3f inputs:emissiveColor = (1.20, 2.60, 3.40)
+{i}        float inputs:metallic = 0
+{i}        float inputs:roughness = 0.4
+{i}        token outputs:surface
+{i}    }}
+{i}}}
+'''
+
     def _orb_material(self, indent):
         """Cool and bright, deliberately against the warm candles and fire — the
         one thing in the room that is not firelight."""
@@ -435,7 +479,7 @@ class Mesh:
 {i}    {{
 {i}        uniform token info:id = "UsdPreviewSurface"
 {i}        color3f inputs:diffuseColor = (0.06, 0.12, 0.16)
-{i}        color3f inputs:emissiveColor = (0.55, 1.45, 2.20)
+{i}        color3f inputs:emissiveColor = (1.60, 3.60, 5.00)
 {i}        float inputs:metallic = 0
 {i}        float inputs:roughness = 0.35
 {i}        token outputs:surface
@@ -901,9 +945,37 @@ def orb_and_pedestal():
     disc(ORB_PED_H, 0.22, (0.0, 1.0, 0.0))
 
     centre = (cx, ORB_PED_H + ORB_GAP + ORB_RADIUS, cz)
-    orb = Mesh("Orb_0", (0.55, 0.85, 1.0), translate=centre)
-    sphere(orb, (0.0, 0.0, 0.0), ORB_RADIUS, 24, 16)
-    return stone.material_usda() + stone.usda() + orb.material_usda() + orb.usda()
+
+    # A crystal, not a light bulb. The old orb was one emissive sphere, which at
+    # any distance is just a flat disc of colour -- nothing inside it to look at.
+    # It is now a glass shell over a bright core, with three rings turning inside
+    # on different axes. The rings are what give it depth: they cross in front of
+    # and behind the core, so the eye reads a volume rather than a circle.
+    parts = [stone]
+
+    shell = Mesh("OrbShell", (0.55, 0.85, 1.0), translate=centre)
+    sphere(shell, (0.0, 0.0, 0.0), ORB_RADIUS, 28, 18)
+    parts.append(shell)
+
+    # Named Orb_ so Swift hangs the room's cool light on it, as before.
+    core = Mesh("Orb_0", (0.55, 0.85, 1.0), translate=centre)
+    sphere(core, (0.0, 0.0, 0.0), ORB_RADIUS * 0.46, 20, 14)
+    parts.append(core)
+
+    for index, (tilt, spin) in enumerate(((0.0, 0.0), (62.0, 40.0), (-48.0, 105.0))):
+        ring = Mesh(f"OrbRing_{index}", (0.60, 0.95, 1.0), translate=centre)
+        torus(ring, ORB_RADIUS * 0.74, ORB_RADIUS * 0.035, 30, 5, tilt, spin)
+        parts.append(ring)
+
+    # Where a now-playing panel will hang. An empty Xform rather than geometry:
+    # Swift can attach a SwiftUI view to it without anything to hide first.
+    anchor = f'''    def Xform "OrbPanel"
+    {{
+        double3 xformOp:translate = ({centre[0]:.4f}, {centre[1] + 0.42:.4f}, {centre[2]:.4f})
+        uniform token[] xformOpOrder = ["xformOp:translate"]
+    }}
+'''
+    return "".join(m.material_usda() + m.usda() for m in parts) + anchor
 
 
 def fireplace():
@@ -1454,6 +1526,48 @@ def candles():
             index += 1
 
     return "".join(out)
+
+
+def torus(mesh, radius, thickness, segments, sides, tilt_deg=0.0, spin_deg=0.0):
+    """A thin ring around the local origin, tilted in place.
+
+    Built around the origin rather than a centre, because these hang on prims
+    that Swift rotates -- geometry authored in world space would spin about the
+    room instead of about itself.
+    """
+    tx, ty = math.radians(tilt_deg), math.radians(spin_deg)
+
+    def place(px, py, pz):
+        # tilt about X, then spin about Y
+        y = py * math.cos(tx) - pz * math.sin(tx)
+        z = py * math.sin(tx) + pz * math.cos(tx)
+        return (px * math.cos(ty) + z * math.sin(ty), y,
+                -px * math.sin(ty) + z * math.cos(ty))
+
+    for i in range(segments):
+        a0 = 2.0 * math.pi * i / segments
+        a1 = 2.0 * math.pi * (i + 1) / segments
+        for j in range(sides):
+            b0 = 2.0 * math.pi * j / sides
+            b1 = 2.0 * math.pi * (j + 1) / sides
+
+            def point(a, b):
+                r = radius + thickness * math.cos(b)
+                return place(r * math.cos(a), thickness * math.sin(b), r * math.sin(a))
+
+            def normal(a, b):
+                return place(math.cos(b) * math.cos(a), math.sin(b),
+                             math.cos(b) * math.sin(a))
+
+            quad = [point(a0, b0), point(a1, b0), point(a1, b1), point(a0, b1)]
+            nrm = [normal(a0, b0), normal(a1, b0), normal(a1, b1), normal(a0, b1)]
+            # UVs passed explicitly though the ring is untextured: face() derives
+            # them from the normal otherwise, and that path assumes one normal for
+            # the face rather than one per vertex.
+            mesh.face(quad, nrm, [(i / segments, j / sides),
+                                  ((i + 1) / segments, j / sides),
+                                  ((i + 1) / segments, (j + 1) / sides),
+                                  (i / segments, (j + 1) / sides)])
 
 
 def sphere(mesh, centre, radius, segments, rings):

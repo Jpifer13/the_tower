@@ -38,7 +38,10 @@ final class LightRig {
     /// The fire is the room's biggest source once lit.
     private static let fireIntensity: Float = 7500
     /// The orb. Cool, steady, and always on — the one light that is not a flame.
-    private static let orbIntensity: Float = 5200
+    /// The crystal is the room's one cool light, and the only one at its centre.
+    /// Raised with the rebuild: it now has a bright core and rings to justify it,
+    /// and at 5200 it lit the pedestal and nothing else.
+    private static let orbIntensity: Float = 14000
 
     /// Grid of the fire flipbook. Must match the sheet, or frames slide instead of
     /// One particle lives for many loops, so a respawn is rare rather than every
@@ -67,6 +70,8 @@ final class LightRig {
     private static let flickerStep = 1.0 / 60.0
 
     private var flames: [Entity] = []
+    /// The bands turning inside the crystal.
+    private var orbRings: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
     private struct SkyKey: Equatable {
@@ -182,11 +187,15 @@ final class LightRig {
     /// a floating light should — which does mean no shadows, since RealityKit has
     /// no PointLightComponent.Shadow. A spot would cast but would read as a lamp.
     private func applyOrb(in scene: Entity) {
+        if orbRings.isEmpty {
+            orbRings = Self.findNamed(prefix: "OrbRing_", in: scene)
+            log.info("orb rings: \(self.orbRings.count)")
+        }
         guard orbLight == nil,
               let orb = Self.findNamed(prefix: "Orb_", in: scene).first else { return }
         var light = PointLightComponent()
         light.intensity = Self.orbIntensity
-        light.attenuationRadius = 7.0
+        light.attenuationRadius = 5.2
         light.color = UIColor(red: 0.55, green: 0.78, blue: 1.0, alpha: 1)
         orb.components.set(light)
         orbLight = orb
@@ -574,6 +583,15 @@ final class LightRig {
                     light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
                     candle.entity.components.set(light)
                 }
+                // The rings. Different axes and rates, and one turning against
+                // the others: three bands on the same axis read as one spinning
+                // object, where crossing ones read as a volume with depth.
+                for (index, ring) in self.orbRings.enumerated() {
+                    let rate = [0.34, -0.21, 0.27][index % 3]
+                    let axis: SIMD3<Float> = [[0, 1, 0], [1, 0, 0], [0, 0, 1]][index % 3]
+                    ring.orientation = simd_quatf(angle: Float(t * rate), axis: axis)
+                }
+
                 if let orb = self.orbLight,
                    var light = orb.components[PointLightComponent.self] {
                     // A slow swell, not a flicker. It should read as alive but
