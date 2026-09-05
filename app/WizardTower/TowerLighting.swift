@@ -62,6 +62,10 @@ final class LightRig {
     private var fireLight: Entity?
     private var orbLight: Entity?
     private var fireParticles: Entity?
+    /// Seconds per flicker tick. The flames are geometry, so this drives visible
+    /// motion and not just light levels.
+    private static let flickerStep = 1.0 / 60.0
+
     private var flames: [Entity] = []
     private var candleLights: [CandleLight] = []
     private var flickerTask: Task<Void, Never>?
@@ -550,7 +554,10 @@ final class LightRig {
             var t = 0.0
             while !Task.isCancelled {
                 guard let self else { return }
-                t += 0.08
+                // 60 Hz rather than the 12.5 it ran at. That was fine while this
+                // only moved light intensities, but the flames are geometry now
+                // and 80 ms steps read as juddering rather than guttering.
+                t += Self.flickerStep
                 for (index, candle) in self.candleLights.enumerated()
                 where candle.entity.isEnabled {
                     guard var light = candle.entity.components[PointLightComponent.self]
@@ -564,6 +571,26 @@ final class LightRig {
                     light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
                     candle.entity.components.set(light)
                 }
+                // The flames themselves. A candle does not pulse evenly: it
+                // stretches, narrows as it stretches, and leans. Every flame gets
+                // its own phase, or thirty of them breathe in unison and the room
+                // looks mechanical.
+                for (index, flame) in self.flames.enumerated() where flame.isEnabled {
+                    let phase = Double(index) * 2.399
+                    let wobble = sin(t * 7.3 + phase) * 0.55
+                        + sin(t * 11.9 + phase * 1.7) * 0.30
+                        + sin(t * 17.3 + phase * 2.3) * 0.15
+                    // Taller and thinner together, so it looks like one flame
+                    // moving rather than a shape being inflated.
+                    flame.scale = SIMD3(Float(1.0 - 0.10 * wobble),
+                                        Float(1.0 + 0.20 * wobble),
+                                        Float(1.0 - 0.10 * wobble))
+                    let leanX = Float(sin(t * 3.1 + phase) * 0.055)
+                    let leanZ = Float(sin(t * 2.6 + phase * 1.3) * 0.055)
+                    flame.orientation = simd_quatf(angle: leanX, axis: [1, 0, 0])
+                        * simd_quatf(angle: leanZ, axis: [0, 0, 1])
+                }
+
                 if let orb = self.orbLight,
                    var light = orb.components[PointLightComponent.self] {
                     // A slow swell, not a flicker. It should read as alive but
@@ -580,7 +607,7 @@ final class LightRig {
                     spot.intensity = Self.fireIntensity * Float(1.0 + 0.30 * breathe)
                     fire.components.set(spot)
                 }
-                try? await Task.sleep(for: .milliseconds(80))
+                try? await Task.sleep(for: .milliseconds(16))
             }
         }
     }
