@@ -1356,6 +1356,37 @@ CANDLES = [
 ]
 
 FLAME_RADIUS = 0.016
+FLAME_HEIGHT = 0.075   # m — a real candle flame, taller than the orb it replaces
+
+
+_FLAME_GEOMETRY = None
+
+
+def flame_geometry():
+    """The flame shape, lifted from the village pack's lit bonfire.
+
+    See tools/extract_flame.py. Normalised to 1.0 tall and sitting on y=0, so it
+    scales to whatever a candle needs.
+    """
+    global _FLAME_GEOMETRY
+    if _FLAME_GEOMETRY is None:
+        path = Path(__file__).parent / "flame_mesh.json"
+        _FLAME_GEOMETRY = json.loads(path.read_text())
+    return _FLAME_GEOMETRY
+
+
+def flame_shape(mesh, height, yaw=0.0, base_y=0.0):
+    """Add one flame to a mesh, scaled, turned and stood on base_y."""
+    geometry = flame_geometry()
+    c, sn = math.cos(math.radians(yaw)), math.sin(math.radians(yaw))
+    pts = []
+    for px, py, pz in geometry["points"]:
+        x, z = px * height, pz * height
+        pts.append((x * c + z * sn, base_y + py * height, -x * sn + z * c))
+    for face, normal in zip(geometry["faces"], geometry["normals"]):
+        nx, ny, nz = normal
+        mesh.face([pts[i] for i in face],
+                  (nx * c + nz * sn, ny, -nx * sn + nz * c))
 
 
 def candles():
@@ -1387,7 +1418,11 @@ def candles():
             # Named by candle, then wick: Swift gives each candle one light rather
             # than one per flame, so a six-cup candelabra costs a single light.
             flame = Mesh(f"Flame_{group}_{wick}", (1.0, 0.78, 0.42), translate=centre)
-            sphere(flame, (0.0, 0.0, 0.0), FLAME_RADIUS, 8, 6)
+            # Turned differently on every wick: the same silhouette repeated
+            # fifty times across the room is what made the old orbs read as
+            # decals rather than as fire.
+            flame_shape(flame, FLAME_HEIGHT, yaw=(index * 47) % 360,
+                        base_y=-FLAME_RADIUS)
             out.append(flame.material_usda() + flame.usda())
             index += 1
 

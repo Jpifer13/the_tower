@@ -41,6 +41,11 @@ window 46 m away.
 | M-200 | Quaternius Medieval Village MegaKit (28 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
 | M-201 | Quaternius Medieval Village Pack (11 of 44 converted, used as landmarks) | exterior village | quaternius.com | $0 | CC0 — confirmed, pack's own License.txt | `licenses/quaternius-medieval-village-pack/` | ✅ |
 
+The candles' flame shape is also lifted from M-201 — the `Fire` material of its
+`Bonfire_Lit` — by `tools/extract_flame.py`, which writes `tools/flame_mesh.json`.
+Only the geometry is used; the pack's flat grey Fire material is discarded for the
+generator's emissive one. Committed to `tools/` because `assets/source/` is not.
+
 ## Audio
 
 | ID | Sound | Use | Source | Price | License | License folder | Status |
