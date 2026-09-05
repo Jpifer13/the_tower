@@ -1357,6 +1357,11 @@ CANDLES = [
 
 FLAME_RADIUS = 0.016
 FLAME_HEIGHT = 0.075   # m — a real candle flame, taller than the orb it replaces
+# Built by tools/convert_candle_flame.py. Absent on a fresh clone until that has
+# run, in which case the still bonfire-derived shape is used instead.
+FLAME_ASSET = (Path(__file__).parent.parent
+               / "app/Packages/RealityKitContent/Sources/RealityKitContent"
+               / "RealityKitContent.rkassets/flame/CandleFlame.usda")
 
 
 _FLAME_GEOMETRY = None
@@ -1417,13 +1422,35 @@ def candles():
             # light Swift attaches lands on the flame rather than at (0, 0, 0).
             # Named by candle, then wick: Swift gives each candle one light rather
             # than one per flame, so a six-cup candelabra costs a single light.
-            flame = Mesh(f"Flame_{group}_{wick}", (1.0, 0.78, 0.42), translate=centre)
-            # Turned differently on every wick: the same silhouette repeated
-            # fifty times across the room is what made the old orbs read as
-            # decals rather than as fire.
-            flame_shape(flame, FLAME_HEIGHT, yaw=(index * 47) % 360,
-                        base_y=-FLAME_RADIUS)
-            out.append(flame.material_usda() + flame.usda())
+            yaw = (index * 47) % 360
+            if FLAME_ASSET.exists():
+                # A bone-animated flame that moves on its own. Referenced rather
+                # than inlined so RealityKit shares one skeleton between wicks.
+                #
+                # The asset is authored Z-up and this scene is Y-up, and USD does
+                # NOT rotate for a differing upAxis -- it is advisory stage
+                # metadata, not a transform. Referenced as-is the flame lies on
+                # its side pointing at the back wall. Rotating -90 about X first
+                # maps its +Z to our +Y; the yaw then turns it about our own up,
+                # because rotateXYZ applies X before Y.
+                out.append(f'''    def "Flame_{group}_{wick}" (
+        prepend references = @flame/CandleFlame.usda@
+    )
+    {{
+        double3 xformOp:translate = ({centre[0]:.4f}, {centre[1]:.4f}, {centre[2]:.4f})
+        float3 xformOp:rotateXYZ = (-90, {yaw:.1f}, 0)
+        float3 xformOp:scale = ({FLAME_HEIGHT}, {FLAME_HEIGHT}, {FLAME_HEIGHT})
+        uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ", "xformOp:scale"]
+    }}
+''')
+            else:
+                # Fallback: the still shape lifted from the bonfire. Turned
+                # differently on every wick, or the same silhouette fifty times
+                # reads as decals rather than as fire.
+                flame = Mesh(f"Flame_{group}_{wick}", (1.0, 0.78, 0.42),
+                             translate=centre)
+                flame_shape(flame, FLAME_HEIGHT, yaw=yaw, base_y=-FLAME_RADIUS)
+                out.append(flame.material_usda() + flame.usda())
             index += 1
 
     return "".join(out)

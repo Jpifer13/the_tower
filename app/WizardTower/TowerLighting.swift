@@ -473,6 +473,8 @@ final class LightRig {
 
         if flames.isEmpty {
             flames = Self.findFlames(in: scene)
+            let started = Self.startFlameAnimations(flames)
+            log.info("flame animations started: \(started)")
             candleLights = Self.makeCandleLights(from: flames, color: flameColor)
             candleLights.forEach { root.addChild($0.entity) }
             log.info("\(self.flames.count) flames in \(self.candleLights.count) candles")
@@ -571,26 +573,6 @@ final class LightRig {
                     light.intensity = candle.intensity * Float(1.0 + 0.42 * wobble)
                     candle.entity.components.set(light)
                 }
-                // The flames themselves. A candle does not pulse evenly: it
-                // stretches, narrows as it stretches, and leans. Every flame gets
-                // its own phase, or thirty of them breathe in unison and the room
-                // looks mechanical.
-                for (index, flame) in self.flames.enumerated() where flame.isEnabled {
-                    let phase = Double(index) * 2.399
-                    let wobble = sin(t * 7.3 + phase) * 0.55
-                        + sin(t * 11.9 + phase * 1.7) * 0.30
-                        + sin(t * 17.3 + phase * 2.3) * 0.15
-                    // Taller and thinner together, so it looks like one flame
-                    // moving rather than a shape being inflated.
-                    flame.scale = SIMD3(Float(1.0 - 0.10 * wobble),
-                                        Float(1.0 + 0.20 * wobble),
-                                        Float(1.0 - 0.10 * wobble))
-                    let leanX = Float(sin(t * 3.1 + phase) * 0.055)
-                    let leanZ = Float(sin(t * 2.6 + phase * 1.3) * 0.055)
-                    flame.orientation = simd_quatf(angle: leanX, axis: [1, 0, 0])
-                        * simd_quatf(angle: leanZ, axis: [0, 0, 1])
-                }
-
                 if let orb = self.orbLight,
                    var light = orb.components[PointLightComponent.self] {
                     // A slow swell, not a flicker. It should read as alive but
@@ -610,6 +592,41 @@ final class LightRig {
                 try? await Task.sleep(for: .milliseconds(16))
             }
         }
+    }
+
+    /// Length of the flame clip, 14 frames at 24 fps.
+    private static let flameClip = 14.0 / 24.0
+
+    /// Set every flame going, each at its own point in the cycle.
+    ///
+    /// The animation is bone-driven and lives on a descendant of the referenced
+    /// prim, not on the flame entity itself, so this walks down to find it.
+    /// Starting them together would have thirty wicks guttering in lockstep,
+    /// which reads as a machine rather than as a room full of candles.
+    private static func startFlameAnimations(_ flames: [Entity]) -> Int {
+        var started = 0
+        for (index, flame) in flames.enumerated() {
+            let offset = (Double(index) * 0.173).truncatingRemainder(dividingBy: flameClip)
+            // Stop at the first entity that owns an animation. The referenced
+            // hierarchy exposes the same clip on seventeen descendants, and
+            // playing all of them drove 510 controllers for 30 flames.
+            func walk(_ entity: Entity) -> Bool {
+                if let animation = entity.availableAnimations.first {
+                    let controller = entity.playAnimation(animation.repeat(),
+                                                          transitionDuration: 0,
+                                                          startsPaused: false)
+                    controller.time = offset
+                    started += 1
+                    return true
+                }
+                for child in entity.children where walk(child) {
+                    return true
+                }
+                return false
+            }
+            _ = walk(flame)
+        }
+        return started
     }
 
     private static func findFlames(in entity: Entity) -> [Entity] {

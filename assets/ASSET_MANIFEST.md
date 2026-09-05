@@ -38,6 +38,7 @@ window 46 m away.
 
 | T-100 | Fire flipbooks 4K/8K 6x6 | (superseded) | **to confirm** | ? | ⚠ unconfirmed | `licenses/fire-flipbooks/` | ⏸ unused |
 | T-101 | Kenney Particle Pack — flame_02 | hearth fire particles | kenney.nl | $0 | CC0 | `licenses/kenney-particle-pack/` | ✅ |
+| M-300 | "Candle light" — animated candle flame (one flame + armature) | candles | Sketchfab / al0sral0 | $0 | **CC BY 4.0 — credit required**, commercial use allowed | `licenses/candle-light-al0sral0/` | ✅ |
 | M-200 | Quaternius Medieval Village MegaKit (28 of 176 converted) | exterior village | quaternius.com | $0 | CC0 (confirm) | `licenses/quaternius-medieval-village/` | ✅ |
 | M-201 | Quaternius Medieval Village Pack (11 of 44 converted, used as landmarks) | exterior village | quaternius.com | $0 | CC0 — confirmed, pack's own License.txt | `licenses/quaternius-medieval-village-pack/` | ✅ |
 
@@ -80,4 +81,8 @@ Still buy **commercial-use** licences so a generic App Store version stays cheap
 
 If any asset ends up attribution-only, list it here — this becomes the in-app credits screen:
 
-- _(none yet)_
+- **"Candle light" by al0sral0** — CC BY 4.0 — the animated candle flame.
+  https://sketchfab.com/3d-models/candle-light-d9d5ed5de83b4d899ab93f55bdc3d0bc
+
+Shown in the app by `CreditsView`, opened from the control panel. This is the
+first asset in the project that requires attribution; everything else is CC0.

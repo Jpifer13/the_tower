@@ -126,3 +126,25 @@ The pack has only three usable house models, so they are chosen in runs of two t
 four along a street, which reads as a terrace built in one go rather than a
 shuffled deck. `merge_town.py` and `edit_house.py` only apply to the modular
 style; in prebuilt there are no modules to bake or rearrange.
+
+## `convert_candle_flame.py`
+
+Extracts the animated candle flame from the Sketchfab candle set (CC BY — see the
+manifest; the credit is required and appears in `CreditsView`).
+
+```
+/Applications/Blender.app/Contents/MacOS/Blender --background \
+    --python tools/convert_candle_flame.py
+```
+
+Keeps one flame and its armature, discards the wax and the other two flames, and
+normalises the result to stand on 0 and be exactly 1.0 tall, so the generator can
+scale it. Without it the generator falls back to the still bonfire-derived shape.
+
+Two traps it exists to handle:
+- The glTF importer names the objects `Object_7`, `Object_9`, `Object_11`; only
+  the *mesh data* carries `candleflame001`. Filtering on the object name silently
+  deletes every mesh.
+- The export is `upAxis = "Z"` and the scene is `"Y"`. USD does **not** rotate for
+  a differing upAxis — it is advisory metadata, not a transform — so the generator
+  applies -90 about X when it references the flame.

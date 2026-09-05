@@ -9,6 +9,8 @@ struct ControlPanelView: View {
 
     /// Ticks the readout so the live sun figures stay current while the panel is open.
     @State private var now = Date.now
+    /// The candle flame is CC BY, which obliges us to credit its author.
+    @State private var showingCredits = false
     private let clock = Timer.publish(every: 30, on: .main, in: .common).autoconnect()
 
     var body: some View {
@@ -31,10 +33,16 @@ struct ControlPanelView: View {
             }
             .toggleStyle(.button)
             .disabled(appModel.immersiveSpaceState == .inTransition)
+
+            Button("Credits") { showingCredits = true }
+                .buttonStyle(.plain)
+                .font(.caption)
+                .foregroundStyle(.secondary)
         }
         .padding(40)
         .frame(minWidth: 460)
         .onReceive(clock) { now = $0 }
+        .sheet(isPresented: $showingCredits) { CreditsView() }
     }
 
     private var sunReadout: some View {
