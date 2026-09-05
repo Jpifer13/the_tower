@@ -474,7 +474,8 @@ final class LightRig {
         if flames.isEmpty {
             flames = Self.findFlames(in: scene)
             let started = Self.startFlameAnimations(flames)
-            log.info("flame animations started: \(started)")
+            let brightened = Self.brightenFlames(flames)
+            log.info("flame animations started: \(started), materials brightened: \(brightened)")
             candleLights = Self.makeCandleLights(from: flames, color: flameColor)
             candleLights.forEach { root.addChild($0.entity) }
             log.info("\(self.flames.count) flames in \(self.candleLights.count) candles")
@@ -594,6 +595,44 @@ final class LightRig {
         }
     }
 
+    /// How hard the flame's own emissive texture is driven.
+    ///
+    /// Its emissive map is (241, 216, 58) -- a strong yellow with almost no blue
+    /// -- so pushing it hard washes the flame to a pale yellow-green. Kept low
+    /// enough that the orange base colour still reads through it, which is what
+    /// gives an orange body with a hot yellow core.
+    private static let flameEmission: Float = 2.2
+
+    /// Make the flames read as fire rather than as coloured glass.
+    ///
+    /// The asset arrives with its opacity wired to the alpha of its base-colour
+    /// texture, so it renders alpha-blended and the wall shows straight through
+    /// it. The silhouette is real geometry, not a card, so nothing is lost by
+    /// making it opaque -- and the emissive texture, driven hard, is what turns
+    /// it from a shape into a light.
+    private static func brightenFlames(_ flames: [Entity]) -> Int {
+        var changed = 0
+        for flame in flames {
+            func walk(_ entity: Entity) {
+                if var model = entity.components[ModelComponent.self] {
+                    model.materials = model.materials.map { material in
+                        guard var pbr = material as? PhysicallyBasedMaterial else {
+                            return material
+                        }
+                        pbr.blending = .opaque
+                        pbr.emissiveIntensity = flameEmission
+                        return pbr
+                    }
+                    entity.components.set(model)
+                    changed += 1
+                }
+                entity.children.forEach(walk)
+            }
+            walk(flame)
+        }
+        return changed
+    }
+
     /// Length of the flame clip, 14 frames at 24 fps.
     private static let flameClip = 14.0 / 24.0
 
@@ -606,13 +645,28 @@ final class LightRig {
     private static func startFlameAnimations(_ flames: [Entity]) -> Int {
         var started = 0
         for (index, flame) in flames.enumerated() {
-            let offset = (Double(index) * 0.173).truncatingRemainder(dividingBy: flameClip)
+            // Ping-pong, not loop. The clip is only 14 frames, so looping it
+            // snaps from the last pose back to the first every 0.6 s and the eye
+            // catches the cut. Played forward then backward there is no cut --
+            // the join is the clip's own end pose, held for an instant.
+            //
+            // Auto-reverse doubles the period, so the stagger runs over 2x.
+            let speed = Float(0.72 + 0.34 * Double((index * 7) % 5) / 4.0)
+            let period = flameClip * 2.0 / Double(speed)
+            let offset = (Double(index) * 0.213).truncatingRemainder(dividingBy: period)
             // Stop at the first entity that owns an animation. The referenced
             // hierarchy exposes the same clip on seventeen descendants, and
             // playing all of them drove 510 controllers for 30 flames.
             func walk(_ entity: Entity) -> Bool {
                 if let animation = entity.availableAnimations.first {
-                    let controller = entity.playAnimation(animation.repeat(),
+                    // Rebuilt rather than played as-is: repeatMode and speed are
+                    // properties of the resource, so the clip has to be wrapped.
+                    let view = AnimationView(source: animation.definition,
+                                             repeatMode: .autoReverse,
+                                             speed: speed)
+                    guard let looped = try? AnimationResource.generate(with: view)
+                    else { return false }
+                    let controller = entity.playAnimation(looped,
                                                           transitionDuration: 0,
                                                           startsPaused: false)
                     controller.time = offset
